@@ -9,6 +9,7 @@
 Ever wondered if you could use a car instrument cluster outside of your car? Well... the answer to that question is yes. The aim of this project is to give you the ability to run a real instrument cluster from a real car on your desk. The main purpose of this is gaming, but the possibilities are endless. You might want to use it as a clock. Or maybe you want to show the amount of unread emails - possibilities are endless.
 
 Here is a little demo video of me playing forza Horizon 4:
+
 [![](https://github.com/r00li/CarCluster/blob/main/Misc/video_thumb.png?raw=true)](https://youtu.be/-aPPZKZ644M)
 
 ## What do I need?
@@ -27,7 +28,7 @@ Currently fully tested and supported are the following instrument clusters:
 
 Note that some other VW instrument clusters from a similar vintage car will probably work as well. Generally we are talking about PQ platform cars. However not all functionality might work without some modifications. Newer MQB platform cars will sadly need a lot more modifications.
 
-You can get these from ebay, your local scrapyard, or if you are in EU: [rrr.lt](rrr.lt/) . They should cost you around 50€,
+You can get these from ebay, your local scrapyard, or if you are in EU: [rrr.lt](rrr.lt/) . No matter where you get them, they should cost you around 50€.
 
 ### Supported games
 If you want to use the instrument cluster for gaming then currently supported are the following games:
