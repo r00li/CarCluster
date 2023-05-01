@@ -34,6 +34,7 @@ You can get these from ebay, your local scrapyard, or if you are in EU: [rrr.lt]
 If you want to use the instrument cluster for gaming then currently supported are the following games:
 
 - Forza Horizon 4 (Horizon 5 should also work, as should Forza Motorsport 7)
+- BeamNG.drive
   
 ## Set it up
 ### Wiring it all together
@@ -94,12 +95,20 @@ This project contains a small web server that you can use to control some basic 
 
 ### Use telemetry data from your game
 *For forza Horizon 4/5*:
-1.  Launch the game and proceed through the menus until you can drive your car
-2.  Pause the game and navigate to the Settings menu
-3.  Navigate to HUD and Gameplay
-4.  Set `Data Out` to `ON`
-5.  Set `Data Out IP Address` to `ip-of-your-ESP32`
-6.  Set `Data Out IP Port` to `1101` (or other if you changed the IP in the code)
+ 1.  Launch the game and proceed through the menus until you can drive your car
+ 2.  Pause the game and navigate to the Settings menu
+ 3.  Navigate to HUD and Gameplay
+ 4.  Set `Data Out` to `ON`
+ 5.  Set `Data Out IP Address` to `ip-of-your-ESP32`
+ 6.  Set `Data Out IP Port` to `1101` (or other if you changed the IP in the code)
+
+*For BeamNG.drive:*
+
+ 1. Navigate to options
+ 2. Select `Others`
+ 3. Scroll down until you find `OutGauge support` and enable it
+ 4. Set IP address to `ip-of-your-ESP32`
+ 5. Set port to `1102` (or other if you changed the IP in the code)
 
 Whenever you now run the game you should see the instrument cluster showing the data from the game. 
 
