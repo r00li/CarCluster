@@ -8,9 +8,11 @@
 
 Ever wondered if you could use a car instrument cluster outside of your car? Well... the answer to that question is yes. The aim of this project is to give you the ability to run a real instrument cluster from a real car on your desk. The main purpose of this is gaming, but the possibilities are endless. You might want to use it as a clock. Or maybe you want to show the amount of unread emails - possibilities are endless.
 
-Here is a little demo video of me playing forza Horizon 4:
-
-[![](https://github.com/r00li/CarCluster/blob/main/Misc/video_thumb.png?raw=true)](https://youtu.be/-aPPZKZ644M)
+Here is a little demo video of me playing forza Horizon 4 (using a PQ instrument cluster):
+[![](https://github.com/r00li/CarCluster/blob/main/Misc/video_thumb.png?raw=true)
+](https://youtu.be/-aPPZKZ644M)
+And a demo video of the playing Beam NG (using MQB instrument cluster)
+[![](https://github.com/r00li/CarCluster/blob/main/Misc/video2_thumb.png?raw=true )](https://youtu.be/H56cSgZeaOw )
 
 ## What do I need?
 The hardware for this is pretty straightforward. You will need:
@@ -24,11 +26,12 @@ The hardware for this is pretty straightforward. You will need:
 ### Supported instrument clusters
 Currently fully tested and supported are the following instrument clusters:
 
-- VW Polo 6R (Also known as Polo mark 5)
+- VW Polo 6R (Also known as Polo mark 5, PQ-25)
+- VW T-Cross (MQB)
 
-Note that some other VW instrument clusters from a similar vintage car will probably work as well. Generally we are talking about PQ platform cars. However not all functionality might work without some modifications. Newer MQB platform cars will sadly need a lot more modifications.
+This project supports both the older VW PQ platform cars (like the Polo) and newer VW MQB platform cars. Generally compatibility between different MQB platform clusters should be higher, so that may be a safer bet. However not all functionality is currently supported on those. For both platforms some modifications might be needed based on the specific car model, so if you are unsure, get the specific clusters mentioned here.
 
-You can get these from ebay, your local scrapyard, or if you are in EU: [rrr.lt](rrr.lt/) . No matter where you get them, they should cost you around 50€.
+You can get these clusters from ebay, your local scrapyard, or if you are in EU: [rrr.lt](rrr.lt/) . No matter where you get them, they should cost you around 50€.
 
 ### Supported games
 If you want to use the instrument cluster for gaming then currently supported are the following games:
@@ -37,7 +40,7 @@ If you want to use the instrument cluster for gaming then currently supported ar
 - BeamNG.drive
   
 ## Set it up
-### Wiring it all together
+### Wiring for PQ platform cluster
 Below is the connector pinout for the Polo 6R dashboard:
 ![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout.jpg?raw=true)You can also see my improvised connector. Just two rows of standard 2.54mm female pin headers glued together. If you can I would suggest you get a cluster that comes with it's original connector.
 
@@ -59,6 +62,22 @@ Wire everything according to the tables below:
 | 22 | Through a push button to ESP GND | Optional: Trip computer menu set/reset |
 | 23 | Through a push button to ESP GND | Optional: Trip computer menu down |
 | 19 | Through a NTC (10k?) | Optional: outside temperature sensor |
+
+### Wiring for MQB platform cluster
+Below is the connector pinout for the VW T-Cross dashboard:
+![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout_mqb.jpg?raw=true)
+
+| Cluster pin | Connect to | Comment |
+|--|--|--|
+| 1 | +12V |
+| 10 | GND (12V power supply) |
+| 18 | CAN H (connect to your can bus interface) |
+| 17 | CAN L (connect to your can bus interface) |
+| 11 | - not connected for now - | Fuel level indicator GND |
+| 14 | - not connected for now - | Fuel level indicator pin 1 |
+| 25 | - not connected for now - | Fuel level indicator pin 2 |
+
+### Other wiring
 
 Connect the CAN bus interface to ESP32 according to this:
 | Can bus interface pin | Connect to | Comment |
@@ -84,7 +103,7 @@ Finally you will need to install a few libraries:
  - [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) - install manually by downloading from github and placing it into your arduino IDE libraries folder
  - [ESPDash](https://docs.espdash.pro/) - install through library manager - tested using 4.0.1
 
-Now that you have done that you just need to enter your wifi network name and wifi password into the code (search for `User configuration`), select your board from the arduino menu and upload it to your board. 
+Now that you have done that you just need to enter your wifi network name and wifi password into the code (search for `User configuration` section), select your board from the arduino menu and upload it to your board. 
 
 *Note that you might have some trouble uploading the code to the arduino while the CAN interface is connected. If you do, disconnect the CAN interface and try uploading again.*  
 
@@ -115,16 +134,23 @@ Whenever you now run the game you should see the instrument cluster showing the 
 ### Known issues and limitations
 For the most part everything should work without issues. However there are a few small things still being worked on:
 
-- Speed needle sometimes drops for a second or two. This is fairly infrequent, but it does sometimes happen.
+- (PQ only) Speed needle sometimes drops for a second or two. This is fairly infrequent, but it does sometimes happen.
 - Fuel indicator doesn't work. Currently you can wire a 200 ohm potentiometer between pins 1 and 2 (middle pin of the pot should be connected to ESP GND) to set a fixed value. Working on a solution with a digital pot to fix this.
-- Traveled trip distance shown on the display is incorrect (this is connected to the speed needle issue, however not exactly sure how)
-- Handbrake indicator causes issues when being show for a long time (keeping this indicator lit for more than a few seconds at a time causes the dashboard to go crazy). Code currently handles this by turning the indicator off after a few seconds, so you should not have any issues.
+- (PQ only) Traveled trip distance shown on the display is incorrect (this is connected to the speed needle issue, however not exactly sure how).
+- (MQB only) less important features like high-beam/low beam indicators, menu controls, ... do not work yet.
+- (MQB only) some warning messages regarding assist systems will show up on the display upon first start
 
 ## Help and support
 
 If you need help with anything contact me through github (open an issue here). You can also check my website for other contact information: http://www.r00li.com .
 
 If you want me to add support for a game or a specific instrument cluster you can also [donate to this project using Paypal](https://www.paypal.com/donate/?hosted_button_id=NVTTFT7Z6KG3E). This will not guarantee that I will add support, but it will certainly give me more incentive to do so.
+
+## Acknowledgements
+This project would not be possible without various people sharing their knowledge and results of their experiments. In particular I would like to thank the following individuals:
+
+- [Leon Bataille](https://hackaday.io/Lebata30) for posting his initial Polo cluster work on Hackaday. The Polo instrument cluster sketch for this project is based on his work
+- [Ronaldo Cordeiro](https://github.com/ronaldocordeiro) for providing information (including sample code) for MQB cluster integration
 
 ## License
 
