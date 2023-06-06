@@ -39,6 +39,7 @@ If you want to use the instrument cluster for gaming then currently supported ar
 
 - Forza Horizon 4 (Horizon 5 should also work, as should Forza Motorsport 7)
 - BeamNG.drive
+- Simhub (not a game but a tool to interface with other games)
   
 ## Set it up
 ### Wiring for PQ platform cluster
@@ -57,8 +58,8 @@ Wire everything according to the tables below:
 | 27 | ESP pin D15 | Oil pressure switch |
 | 17 | ESP pin D4 | Sprinkler water level sensor |
 | 18 | ESP pin D16 | Coolant shortage indicator |
-| 1 | - not connected for now - | Fuel level indicator pin 1 |
-| 2 | - not connected for now - | Fuel level indicator pin 2 |
+| 1 | Digital Pot FS1 | Fuel level indicator pin 1 |
+| 2 | Digital Pot FS2 | Fuel level indicator pin 2 |
 | 21 | Through a push button to ESP GND | Optional: Trip computer menu up |
 | 22 | Through a push button to ESP GND | Optional: Trip computer menu set/reset |
 | 23 | Through a push button to ESP GND | Optional: Trip computer menu down |
@@ -74,9 +75,9 @@ Below is the connector pinout for the VW T-Cross dashboard:
 | 10 | GND (12V power supply) |
 | 18 | CAN H (connect to your can bus interface) |
 | 17 | CAN L (connect to your can bus interface) |
-| 11 | - not connected for now - | Fuel level indicator GND |
-| 14 | - not connected for now - | Fuel level indicator pin 1 |
-| 25 | - not connected for now - | Fuel level indicator pin 2 |
+| 11 | ESP/Digital Pot GND | Fuel level indicator GND |
+| 14 | Digital Pot FS1 | Fuel level indicator pin 1 |
+| 25 | Digital Pot FS1 | Fuel level indicator pin 2 |
 
 ### Other wiring
 
@@ -91,6 +92,13 @@ Connect the CAN bus interface to ESP32 according to this:
 | GND | ESP GND |
 | VCC | ESP VIN | This is the 5V line when ESP is powered from USB |
 
+### Fuel level simulation
+Instrument clusters use analog resistance values in order to calculate fuel level. The best way to simulate that is through the use of an X9C102 digital potentiometer. Connect it according to the schematic below. You will need two 1k ohm resistors in addition to the digital potentiometer itself. 
+
+When connecting the digital pot you might find that if you increase the value in the dashboard, the value on the cluster goes down. If this is the case swap connections FS1 and FS2. 
+
+![Fuel level simulation](https://github.com/r00li/CarCluster/blob/main/Misc/fuel_simulation.png?raw=true)
+
 ### Install the arduino sketch to the ESP32
 Navigate to the Dashboard Sketches folder of this project and select the sketch for the dashboard that you are using. Download the sketch folder and open it using Arduino IDE (I am using version 2.1.0).
 
@@ -103,8 +111,10 @@ Finally you will need to install a few libraries:
  - [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) - install manually by downloading from github and placing it into your arduino IDE libraries folder
  - [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) - install manually by downloading from github and placing it into your arduino IDE libraries folder
  - [ESPDash](https://docs.espdash.pro/) - install through library manager - tested using 4.0.1
+ - [X9C10X](https://github.com/RobTillaart/X9C10X) - install through library manager - tested using 0.2.2
+ - [WifiManager](https://github.com/tzapu/WiFiManager) - install through library manager - tested using 2.0.16-rc.2
 
-Now that you have done that you just need to enter your wifi network name and wifi password into the code (search for `User configuration` section), select your board from the arduino menu and upload it to your board. 
+Now that you have done that you can compile and install the sketch to your ESP32. Upon starting the ESP will create a wifi network access point called `CarCluster`. Connect to it using your phone/laptop using the password `cluster`. After you have done that you can open a web browser (if a popup one doesn't open automatically upon connection) and navigate to `192.168.4.1`. This will bring up WifiManager where you can see the networks around you and connect to the one you want. After you do that your ESP will automatically connect to the network you select unless an error occurs in which case the access point will be created again. If you do not configure the wifi network in 3 minutes the ESP will boot in serial only mode that you can use with Simhub. 
 
 *Note that you might have some trouble uploading the code to the arduino while the CAN interface is connected. If you do, disconnect the CAN interface and try uploading again.*  
 
@@ -131,6 +141,33 @@ This project contains a small web server that you can use to control some basic 
  5. Set port to `1102` (or other if you changed the IP in the code)
 
 Whenever you now run the game you should see the instrument cluster showing the data from the game. 
+
+### Use with Simhub
+Simhub support is also included. Simhub can be used in cases where your favourite game isn't supported by this project directly. Simhub support is for now only available through USB connection and not through wifi. 
+
+In order to set this up you will first need to [enable custom serial devices plugin](https://github.com/SHWotever/SimHub/wiki/Custom-serial-devices#enabling-the-plugin) in simhub. After you have done that navigate to the "Custom serial devices" tab on the left and add a new device. Configure it as follows:
+
+![Simhub configuration](https://github.com/r00li/CarCluster/blob/main/Misc/simhub.png?raw=true)
+
+In the Update messages enter the following code:
+
+     '{"action":10' +
+     ', "spe":' + truncate(format([SpeedKmh], 0)) + 
+     ', "gea":"' + isnull([Gear], 'P') + '"' +
+     ', "rpm":' + truncate(isnull([Rpms], 0)) +
+     ', "mrp":' + truncate(isnull([MaxRpm], 8000)) +
+     ', "lft":' + isnull([TurnIndicatorLeft], 0) +
+     ', "rit":' + isnull([TurnIndicatorRight], 0) +
+     ', "oit":' + truncate(isnull([OilTemperature], 0)) + 
+     ', "pau":' + isnull([DataCorePlugin.GamePaused], 0) +
+     ', "run":' + isnull([DataCorePlugin.GameRunning], 0) +
+     ', "fue":' + truncate(isnull([DataCorePlugin.Computed.Fuel_Percent], 0)) +
+     ', "hnb":' + isnull([Handbrake], 0) +
+     ', "abs":' + isnull([ABSActive], 0) +
+     ', "tra":' + isnull([TCActive], 0) +
+     '}\n'
+
+You can now enjoy CarCluster with any game that is supported by Simhub.
 
 ### Known issues and limitations
 For the most part everything should work without issues. However there are a few small things still being worked on:

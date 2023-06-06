@@ -14,10 +14,11 @@
 // Libraries
 #include <mcp_can.h>  // CAN Bus Shield Compatibility Library (install through library manager: mcp_can by coryjfowler - tested using 1.5.0)
 #include <SPI.h>      // CAN Bus Shield SPI Pin Library (arduino system library)
-
 #include <AsyncUDP.h>     // For game integration (system library part of ESP core)
 #include <ArduinoJson.h>  // For parsing serial data nad for ESPDash (install through library manager: ArduinoJson by Benoit Blanchon - tested using 6.20.1)
+#include "X9C10X.h"       // For fuel level simulation (install through library manager: X9C10X by Rob Tillaart - tested using 0.2.2)
 
+#include "WiFiManager.h"        // For easier wifi management (install through library manager: WiFiManager by tzapu - tested using 2.0.16-rc.2)
 #include <WiFi.h>               // Arduino system library (part of ESP core)
 #include <AsyncTCP.h>           // Requirement for ESP-DASH (install manually from: https://github.com/me-no-dev/AsyncTCP )
 #include <ESPAsyncWebServer.h>  // Requirement for ESP-DASH (install manually from:  https://github.com/me-no-dev/ESPAsyncWebServer )
@@ -26,18 +27,19 @@
 
 
 // User configuration
-const char* ssid = "<wifi network>";       // Wifi network name (SSID)
-const char* password = "<wifi password>";  // Wifi password
 const int forzaUDPPort = 1101;             // UDP Port to listen to for Forza Motorsport. Configure Forza to send telemetry data to this port
 const int beamNGUDPPort = 1102;            // UDP Port to listen to for Beam NG. Configure Beam to send telemetry data to this port
 const int updateClusterDelayMs = 5;        // At least how much time (in ms) must pass before we send the data to cluster again. Set to 0 for as fast as possible. Should be no faster than 10ms - causes cluster to be overwhelmed.
+const int minimumFuelPotValue = 18;        // Calibration of the fuel pot - minimum value
+const int maximumFuelPotValue = 85;        // Calibration of the fuel pot - maximum value
 
 // Pin configuration
 const int sprinklerWaterSensor = 4;
 const int coolantShortageSensor = 16;
 const int oilPressureSwitch = 15;
-const int fuelGaugePin1 = 36;
-const int fuelGaugePin2 = 39;
+const int fuelPotInc = 14;
+const int fuelPotDir = 27;
+const int fuelPotCs = 12;
 const int SPI_CS_PIN = 5;
 const int CAN_INT = 2;
 
@@ -69,14 +71,14 @@ boolean seat_belt = false;               // Switch Seat Betl warning light.
 boolean signal_dieselpreheat = false;    // Simualtes Diesel Preheating
 boolean signal_watertemp = false;        // Simualtes high water temperature
 boolean dpf_warning = false;             // Shows the Diesel particle filter warning signal.
-int fuelQuantity = 100;                  // TODO: Doesn't work yet - Amount of fuel
+int fuelQuantity = 100;                  // Amount of fuel
 uint8_t gear = 0;                        // The gear that the car is in: 0 = P, 1-7 = Gear 1-7, 8 = R, 9 = N, 10 = D
 
 // Helper constants
 #define lo8(x) ((int)(x)&0xff)
 #define hi8(x) ((int)(x) >> 8)
 
-const unsigned int MAX_SERIAL_MESSAGE_LENGTH = 180;
+const unsigned int MAX_SERIAL_MESSAGE_LENGTH = 250;
 
 // Global variables for various dashboard functionallity
 int turning_lights_counter = 0;
@@ -92,6 +94,9 @@ long unsigned int canRxId;
 unsigned char canRxLen = 0;
 unsigned char canRxBuf[8];
 char canRxMsgString[128];  // Array to store serial string
+
+// Fuel level simulation
+X9C102 fuelPot = X9C102();
 
 // Dyna HTML configuration
 AsyncWebServer server(80);
@@ -121,8 +126,6 @@ void setup() {
   pinMode(sprinklerWaterSensor, OUTPUT);
   pinMode(coolantShortageSensor, OUTPUT);
   pinMode(oilPressureSwitch, OUTPUT);
-  pinMode(fuelGaugePin1, OUTPUT);
-  pinMode(fuelGaugePin2, OUTPUT);
 
   pinMode(SPI_CS_PIN, OUTPUT);
   pinMode(CAN_INT, INPUT);
@@ -131,16 +134,24 @@ void setup() {
   digitalWrite(coolantShortageSensor, HIGH);
   digitalWrite(oilPressureSwitch, LOW);
 
+  fuelPot.begin(fuelPotInc, fuelPotDir, fuelPotCs);
+  fuelPot.setPosition(100, true); // Force the pot to a known value
+
   //Begin with Serial Connection
   Serial.begin(115200);
 
   // Connect to wifi
+  // WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("WiFi Failed!");
-    return;
+  WiFiManager wm;
+  wm.setConfigPortalTimeout(180);
+  bool res = wm.autoConnect("CarCluster", "cluster");
+  if(!res) {
+      Serial.println("Wifi Failed to connect");
+  } else {
+      Serial.println("Wifi cvonnected...yeey :)");
   }
+  
   Serial.println();
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
@@ -241,15 +252,8 @@ void CanSend(short address, byte a, byte b, byte c, byte d, byte e, byte f, byte
 
 // Fuel gauge control (0-100%)
 void setFuel(int percentage) {
-  return;  // DISABLED FOR NOW
-
-  if (percentage >= 0 && percentage <= 100) {
-    int diff1 = (int)((((float)percentage / 100.0) * 74.0) + 83.0);
-    int diff2 = (int)(((((float)percentage / 100.0) * 74.0) - 157.0) * -1.0);
-
-    analogWrite(fuelGaugePin2, diff1);
-    analogWrite(fuelGaugePin1, diff2);
-  }
+  int desiredPosition = map(percentage, 0, 100, minimumFuelPotValue, maximumFuelPotValue);
+  fuelPot.setPosition(desiredPosition, false);
 }
 
 void loop() {
@@ -494,6 +498,8 @@ void loop() {
     // Key inserted, car started, ignition on?
     CanSend(0x572, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F);
 
+    setFuel(fuelQuantity);
+
     // Iteration counters used by a few CAN messages that are needed
     iterationCount++;
 
@@ -551,6 +557,7 @@ void readSerialJson() {
       if (error) {
         Serial.print(F("deserializeJson() failed: "));
         Serial.println(error.c_str());
+        message_pos = 0;
         return;
       }
       Serial.println(error.c_str());
@@ -572,18 +579,8 @@ void readSerialJson() {
         Serial.println(address);
 
         CanSend(address, p1, p2, p3, p4, p5, p6, p7, p8);
-      } else if (action == 1) {
-        boolean val = doc["value"];
-        signal_abs = val;
-      } else if (action == 2) {
-        boolean val = doc["value"];
-        signal_handbrake = val;
-      } else if (action == 3) {
-        boolean val = doc["value"];
-        battery_warning = val;
-      } else if (action == 4) {
-        boolean val = doc["value"];
-        signal_offroad = val;
+      } else if (action == 10) {
+        decodeSimhub();
       }
 
       //Reset for the next message
@@ -737,6 +734,39 @@ void listenBeamNGUDP(int port) {
       }
     });
   }
+}
+
+void decodeSimhub() {
+  rpm = doc["rpm"];
+  int max_rpm = doc["mrp"];
+  if (max_rpm > 8000) {
+    rpm = map(rpm, 0, max_rpm, 0, 8000);
+  }
+
+  const char* simGear = doc["gea"];
+  switch(simGear[0]) {
+    case 'P': gear = 0; break;
+    case '1': gear = 1; break;
+    case '2': gear = 2; break;
+    case '3': gear = 3; break;
+    case '4': gear = 4; break;
+    case '5': gear = 5; break;
+    case '6': gear = 6; break;
+    case '7': gear = 7; break;
+    case 'R': gear = 8; break;
+    case 'N': gear = 9; break;
+    case 'D': gear = 10; break;
+  }
+
+  speed = doc["spe"];
+  leftTurningIndicator = doc["lft"];
+  rightTurningIndicator = doc["rit"];
+  int oilTemperature = doc["oit"]; // Not supported on Polo
+  door_open = (doc["pau"] != 0 || doc["run"] == 0);
+  fuelQuantity = doc["fue"];
+  signal_handbrake = doc["hnb"];
+  signal_abs = doc["abs"];
+  signal_offroad = doc["tra"];
 }
 
 /*

@@ -25,7 +25,7 @@ void MQBDash::updateWithState(int speed,
     // This should probably be done using a more sophisticated method like a
     // scheduler, but for now this seems to work.
 
-    sendSteeringWheelControls();
+    //sendSteeringWheelControls();
     sendIgnitionStatus();
     sendBacklightBrightness(backlightBrightness);
     sendESP20();
@@ -297,7 +297,7 @@ void MQBDash::sendGear(uint8_t gear) {
 
   CAN.sendMsgBuf(WBA_03_ID, 0, 8, wba03Buf);
 
-  // CAN.sendMsgBuf(RKA_01_ID, 0, 8, rka01Buf); // TODO: REmove
+  //CAN.sendMsgBuf(RKA_01_ID, 0, 8, rka01Buf); // TODO: Importnant for MFSW? Try it
 }
 
 void MQBDash::sendAirbag01() {

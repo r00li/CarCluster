@@ -14,10 +14,11 @@
 // Libraries
 #include <mcp_can.h>  // CAN Bus Shield Compatibility Library (install through library manager: mcp_can by coryjfowler - tested using 1.5.0)
 #include <SPI.h>      // CAN Bus Shield SPI Pin Library (arduino system library)
-
 #include <AsyncUDP.h>     // For game integration (system library part of ESP core)
 #include <ArduinoJson.h>  // For parsing serial data nad for ESPDash (install through library manager: ArduinoJson by Benoit Blanchon - tested using 6.20.1)
+#include "X9C10X.h"       // For fuel level simulation (install through library manager: X9C10X by Rob Tillaart - tested using 0.2.2)
 
+#include "WiFiManager.h"        // For easier wifi management (install through library manager: WiFiManager by tzapu - tested using 2.0.16-rc.2)
 #include <WiFi.h>               // Arduino system library (part of ESP core)
 #include <AsyncTCP.h>           // Requirement for ESP-DASH (install manually from: https://github.com/me-no-dev/AsyncTCP )
 #include <ESPAsyncWebServer.h>  // Requirement for ESP-DASH (install manually from:  https://github.com/me-no-dev/ESPAsyncWebServer )
@@ -27,15 +28,19 @@
 
 
 // User configuration
-const char* ssid = "<wifi network>";                     // Wifi network name (SSID)
-const char* password = "<wifi password>";                // Wifi password
+// In order to connect to wifi the ESP will on first boot create a wifi access point called CarCluster. Connect to it (password is "cluster"),
+// then open your web browser and navigate to 192.168.4.1 and use the UI there to connect your wifi network.
+// If wifi is not connected after 3 minutes the ESP will continue normal operation and you can use it in Simgub/serial mode
 const int forzaUDPPort = 1101;                           // UDP Port to listen to for Forza Motorsport. Configure Forza to send telemetry data to this port
 const int beamNGUDPPort = 1102;                          // UDP Port to listen to for Beam NG. Configure Beam to send telemetry data to this port
 const unsigned long webDashboardUpdateInterval = 2000;   // How often is the web dashboard updated
+const int minimumFuelPotValue = 22;                      // Calibration of the fuel pot - minimum value
+const int maximumFuelPotValue = 80;                      // Calibration of the fuel pot - maximum value
 
 // Pin configuration
-const int fuelGaugePin1 = 36;
-const int fuelGaugePin2 = 39;
+const int fuelPotInc = 14;
+const int fuelPotDir = 27;
+const int fuelPotCs = 12;
 const int SPI_CS_PIN = 5;
 const int CAN_INT = 2;
 
@@ -49,6 +54,7 @@ boolean rightTurningIndicator = false;   // Right blinker
 boolean turning_lights_blinking = true;  // Choose the mode of the turning lights (blinking or just shining)
 uint8_t gear = 0;                        // The gear that the car is in: 0 = clear, 1-9 = M1-M9, 10 = P, 11 = R, 12 = N, 13 = D
 int coolantTemperature = 90;             // Coolant temperature 50-130C
+int fuelQuantity = 100;                  // Amount of fuel
 
 // TODO: Find the CAN IDs for some of these variables
 boolean signal_abs = false;              // Shows ABS Signal on dashboard
@@ -67,11 +73,10 @@ boolean seat_belt = false;               // Switch Seat Betl warning light.
 boolean signal_dieselpreheat = false;    // Simualtes Diesel Preheating
 boolean signal_watertemp = false;        // Simualtes high water temperature
 boolean dpf_warning = false;             // Shows the Diesel particle filter warning signal.
-int fuelQuantity = 100;                  // TODO: Doesn't work yet - Amount of fuel
 
 
 // Helper constants
-const unsigned int MAX_SERIAL_MESSAGE_LENGTH = 180;
+const unsigned int MAX_SERIAL_MESSAGE_LENGTH = 250;
 
 // Global variables for various dashboard functionallity
 unsigned long lastWebDashboardUpdateTime = 0;
@@ -88,11 +93,14 @@ char canRxMsgString[128];  // Array to store serial string
 // CAN bus devices
 MQBDash mqbDash(CAN);
 
+// Fuel level simulation
+X9C102 fuelPot = X9C102();
+
 // Dyna HTML configuration
 AsyncWebServer server(80);
 ESPDash dashboard(&server);
 
-Card speedCard(&dashboard, SLIDER_CARD, "Speed", "km/h", 0, 240);
+Card speedCard(&dashboard, SLIDER_CARD, "Speed", "km/h", 0, 260);
 Card rpmCard(&dashboard, SLIDER_CARD, "RPM", "rpm", 0, 8000);
 Card fuelCard(&dashboard, SLIDER_CARD, "Fuel qunaity", "%", 0, 100);
 Card highBeamCard(&dashboard, BUTTON_CARD, "High beam");
@@ -125,22 +133,27 @@ StaticJsonDocument<400> doc;
 
 void setup() {
   // Define the outputs
-  pinMode(fuelGaugePin1, OUTPUT);
-  pinMode(fuelGaugePin2, OUTPUT);
-
   pinMode(SPI_CS_PIN, OUTPUT);
   pinMode(CAN_INT, INPUT);
+
+  fuelPot.begin(fuelPotInc, fuelPotDir, fuelPotCs);
+  fuelPot.setPosition(100, true); // Force the pot to a known value
 
   //Begin with Serial Connection
   Serial.begin(115200);
 
   // Connect to wifi
+  // WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("WiFi Failed!");
-    return;
+  WiFiManager wm;
+  wm.setConfigPortalTimeout(180);
+  bool res = wm.autoConnect("CarCluster", "cluster");
+  if(!res) {
+      Serial.println("Wifi Failed to connect");
+  } else {
+      Serial.println("Wifi cvonnected...yeey :)");
   }
+
   Serial.println();
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
@@ -297,23 +310,18 @@ void CanSend(short address, byte a, byte b, byte c, byte d, byte e, byte f, byte
 
 // Fuel gauge control (0-100%)
 void setFuel(int percentage) {
-  return;  // DISABLED FOR NOW
-
-  if (percentage >= 0 && percentage <= 100) {
-    int diff1 = (int)((((float)percentage / 100.0) * 74.0) + 83.0);
-    int diff2 = (int)(((((float)percentage / 100.0) * 74.0) - 157.0) * -1.0);
-
-    analogWrite(fuelGaugePin2, diff1);
-    analogWrite(fuelGaugePin1, diff2);
-  }
+  int desiredPosition = map(percentage, 0, 100, minimumFuelPotValue, maximumFuelPotValue);
+  fuelPot.setPosition(desiredPosition, false);
 }
 
 void loop() {
   // Update the dashboard
   mqbDash.updateWithState(speed, rpm, backlight_brightness, leftTurningIndicator, rightTurningIndicator, turning_lights_blinking, gear, coolantTemperature);
 
+  setFuel(fuelQuantity);
+
   //Testing only. To be removed
-  mqbDash.updateTestBuffer(val0, val1, val2, val3, val4, val5, val6, val7);
+  //mqbDash.updateTestBuffer(val0, val1, val2, val3, val4, val5, val6, val7);
 
   // Serial message handling
   readSerialJson();
@@ -373,6 +381,7 @@ void readSerialJson() {
       if (error) {
         Serial.print(F("deserializeJson() failed: "));
         Serial.println(error.c_str());
+        message_pos = 0;
         return;
       }
       Serial.println(error.c_str());
@@ -394,18 +403,10 @@ void readSerialJson() {
         Serial.println(address);
 
         CanSend(address, p1, p2, p3, p4, p5, p6, p7, p8);
-      } else if (action == 1) {
-        boolean val = doc["value"];
-        signal_abs = val;
-      } else if (action == 2) {
-        boolean val = doc["value"];
-        signal_handbrake = val;
-      } else if (action == 3) {
-        boolean val = doc["value"];
-        battery_warning = val;
-      } else if (action == 4) {
-        boolean val = doc["value"];
-        signal_offroad = val;
+      } else if (action == 10) {
+        // Used to decode custom protocol from Simhub in the following format:
+        // {"action":10, "spe":54, "gea":"2", "rpm":3590, "mrp":7999, "lft":0, "rit":0, "oit":0, "pau":0, "run":0, "fue":0, "hnb":0, "abs":0, "tra":0}
+        decodeSimhub();
       }
 
       //Reset for the next message
@@ -482,7 +483,7 @@ void listenForzaUDP(int port) {
         mempcpy(rpmBuff, (packet.data() + 256), 4);
         int someSpeed = *((float*)rpmBuff);
         someSpeed = someSpeed * 3.6;
-        if (someSpeed > 240) { someSpeed = 240; }
+        if (someSpeed > 260) { someSpeed = 260; }
         speed = someSpeed;
 
         // GEAR
@@ -536,7 +537,7 @@ void listenBeamNGUDP(int port) {
         mempcpy(rpmBuff, (packet.data() + 12), 4);
         int someSpeed = *((float*)rpmBuff);
         someSpeed = someSpeed * 3.6;               // Speed is in m/s
-        if (someSpeed > 240) { someSpeed = 240; }  // Cap the speed to 240 since the cluster doesn't go higher
+        if (someSpeed > 260) { someSpeed = 260; }  // Cap the speed to 260 since the cluster doesn't go higher
         speed = someSpeed;
 
         // CURRENT_ENGINE_RPM
@@ -565,4 +566,37 @@ void listenBeamNGUDP(int port) {
       }
     });
   }
+}
+
+void decodeSimhub() {
+  rpm = doc["rpm"];
+  int max_rpm = doc["mrp"];
+  if (max_rpm > 8000) {
+    rpm = map(rpm, 0, max_rpm, 0, 8000);
+  }
+
+  const char* simGear = doc["gea"];
+  switch(simGear[0]) {
+    case 'P': gear = 0; break;
+    case '1': gear = 1; break;
+    case '2': gear = 2; break;
+    case '3': gear = 3; break;
+    case '4': gear = 4; break;
+    case '5': gear = 5; break;
+    case '6': gear = 6; break;
+    case '7': gear = 7; break;
+    case 'R': gear = 8; break;
+    case 'N': gear = 9; break;
+    case 'D': gear = 10; break;
+  }
+
+  speed = doc["spe"];
+  leftTurningIndicator = doc["lft"];
+  rightTurningIndicator = doc["rit"];
+  coolantTemperature = doc["oit"];
+  door_open = (doc["pau"] != 0 || doc["run"] == 0);
+  fuelQuantity = doc["fue"];
+  signal_handbrake = doc["hnb"];
+  signal_abs = doc["abs"];
+  signal_offroad = doc["tra"];
 }
