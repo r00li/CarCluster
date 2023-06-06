@@ -23,6 +23,7 @@ The hardware for this is pretty straightforward. You will need:
  - 12V power supply (doesn't have to be too powerful. But 1A or more is probably what you want)
  - Car instrument cluster supported by this project
  - Some wires, pin headers and other stuff to wire everything together
+ - An X9C102 (or two) digital potentiometer plus two 1k ohm resistors (for fuel level simulation - optional)
 
 ### Supported instrument clusters
 Currently fully tested and supported are the following instrument clusters:
@@ -77,7 +78,7 @@ Below is the connector pinout for the VW T-Cross dashboard:
 | 17 | CAN L (connect to your can bus interface) |
 | 11 | ESP/Digital Pot GND | Fuel level indicator GND |
 | 14 | Digital Pot FS1 | Fuel level indicator pin 1 |
-| 25 | Digital Pot FS1 | Fuel level indicator pin 2 |
+| 25 | Digital Pot FS2 | Fuel level indicator pin 2 |
 
 ### Other wiring
 
