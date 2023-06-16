@@ -1,13 +1,11 @@
 // ####################################################################################################################
 //
 // CarCluster
-// MQB (VW T-Cross) Edition
+// PQ46 (Skoda Superb 2) Edition
 // https://github.com/r00li/CarCluster
 //
 // By Andrej Rolih
 // https://www.r00li.com
-//
-// MQB CAN message implementation based on work by Ronaldo Cordeiro ( https://github.com/ronaldocordeiro )
 //
 // ####################################################################################################################
 
@@ -24,27 +22,36 @@
 #include <ESPAsyncWebServer.h>  // Requirement for ESP-DASH (install manually from:  https://github.com/me-no-dev/ESPAsyncWebServer )
 #include <ESPDash.h>            // Web dashboard ( install from library manager: ESP-DASH by Ayush Sharma - tested using 4.0.1)
 
-#include "MQBDash.h"
+#include "PQ46Dash.h"
 
 
 // User configuration
 // In order to connect to wifi the ESP will on first boot create a wifi access point called CarCluster. Connect to it (password is "cluster"),
 // then open your web browser and navigate to 192.168.4.1 and use the UI there to connect your wifi network.
-// If wifi is not connected after 3 minutes the ESP will continue normal operation and you can use it in Simgub/serial mode
+// If wifi is not connected after 3 minutes the ESP will continue normal operation and you can use it in Simhub/serial mode
 const int forzaUDPPort = 1101;                           // UDP Port to listen to for Forza Motorsport. Configure Forza to send telemetry data to this port
 const int beamNGUDPPort = 1102;                          // UDP Port to listen to for Beam NG. Configure Beam to send telemetry data to this port
 const unsigned long webDashboardUpdateInterval = 2000;   // How often is the web dashboard updated
-const int minimumFuelPotValue = 22;                      // Calibration of the fuel pot - minimum value
-const int maximumFuelPotValue = 80;                      // Calibration of the fuel pot - maximum value
-const float speedCorrectionFactor = 1.00;   // Calibration of speed gauge
-const float rpmCorrectionFactor = 1.00;     // Calibration of RPM gauge
-const int maximumRPMValue = 8000;           // Set what is the maximum RPM on your cluster
-const int maximumSpeedValue = 260;          // Set what is the maximum speed on your cluster (in km/h)  
+const boolean dualFuelPot = true;           // Does the cluster use dual fuel senders?
+const int minimumFuelPotValue = 18;         // Calibration of fuel pot - minimum value
+const int maximumFuelPotValue = 83;         // Calibration of fuel pot - maximum value
+const int minimumFuelPot2Value = 17;        // Calibration of fuel pot 2 - minimum value
+const int maximumFuelPot2Value = 75;        // Calibration of fuel pot 2 - maximum value
+const float speedCorrectionFactor = 0.945;  // Calibration of speed gauge
+const float rpmCorrectionFactor = 1.0;      // Calibration of RPM gauge
+const int maximumRPMValue = 6000;           // Set what is the maximum RPM on your cluster
+const int maximumSpeedValue = 270;          // Set what is the maximum speed on your cluster (in km/h)  
 
 // Pin configuration
+const int sprinklerWaterSensor = 4;
+const int coolantShortageSensor = 16;
+const int oilPressureSwitch = 15;
+const int handbrakeIndicator = 13;
+const int brakeFluidWarning = 22;
 const int fuelPotInc = 14;
 const int fuelPotDir = 27;
 const int fuelPotCs = 12;
+const int fuelPot2Cs = 33;
 const int SPI_CS_PIN = 5;
 const int CAN_INT = 2;
 
@@ -56,28 +63,20 @@ uint8_t backlight_brightness = 99;       // Backlight brightness 0-99 (only vali
 boolean leftTurningIndicator = false;    // Left blinker
 boolean rightTurningIndicator = false;   // Right blinker
 boolean turning_lights_blinking = true;  // Choose the mode of the turning lights (blinking or just shining)
-uint8_t gear = 0;                        // The gear that the car is in: 0 = clear, 1-9 = M1-M9, 10 = P, 11 = R, 12 = N, 13 = D
+uint8_t gear = 0;                        // The gear that the car is in: 0 = P, 1-7 = Gear 1-7, 8 = R, 9 = N, 10 = D
 int coolantTemperature = 90;             // Coolant temperature 50-130C
 int fuelQuantity = 100;                  // Amount of fuel
-
-// TODO: Find the CAN IDs for some of these variables
 boolean signal_abs = false;              // Shows ABS Signal on dashboard
 boolean signal_offroad = false;          // Simulates Offroad drive mode
 boolean signal_handbrake = false;        // Enables handbrake signal
 boolean signal_lowtirepressure = false;  // Simulates low tire pressure
 boolean door_open = false;               // Simulate open doors
-boolean clutch_control = false;          // Displays the Message "Kupplung" (German for Clutch) on the dashboard's LCD
-boolean check_lamp = false;              // Show 'Check Lamp' Signal on dashboard. B00010000 = on, B00000 = off
 boolean trunklid_open = false;           // Simulate open trunk lid (Kofferraumklappe). B00100000 = open, B00000 = closed
 boolean battery_warning = false;         // Show Battery Warning.
-boolean keybattery_warning = false;      // Show message 'Key Battery Low' on Display. But just after first start of dashboard.
 boolean light_fog = false;               // Enable Fog Light indicator
 boolean light_highbeam = false;          // Enable High Beam Light
-boolean seat_belt = false;               // Switch Seat Betl warning light.
-boolean signal_dieselpreheat = false;    // Simualtes Diesel Preheating
-boolean signal_watertemp = false;        // Simualtes high water temperature
-boolean dpf_warning = false;             // Shows the Diesel particle filter warning signal.
-
+boolean light_daylight = false;          // Enable daylight running light light
+boolean light_fog_rear = false;          // Enable rear foglight light
 
 // Helper constants
 const unsigned int MAX_SERIAL_MESSAGE_LENGTH = 250;
@@ -95,10 +94,11 @@ unsigned char canRxBuf[8];
 char canRxMsgString[128];  // Array to store serial string
 
 // CAN bus devices
-MQBDash mqbDash(CAN);
+PQ46Dash pq46Dash(CAN);
 
 // Fuel level simulation
 X9C102 fuelPot = X9C102();
+X9C102 fuelPot2 = X9C102();
 
 // Dyna HTML configuration
 AsyncWebServer server(80);
@@ -108,36 +108,20 @@ Card speedCard(&dashboard, SLIDER_CARD, "Speed", "km/h", 0, 260);
 Card rpmCard(&dashboard, SLIDER_CARD, "RPM", "rpm", 0, 8000);
 Card fuelCard(&dashboard, SLIDER_CARD, "Fuel qunaity", "%", 0, 100);
 Card highBeamCard(&dashboard, BUTTON_CARD, "High beam");
-Card fogLampCard(&dashboard, BUTTON_CARD, "Fog lamp");
+Card daylightLightCard(&dashboard, BUTTON_CARD, "Daylight running light");
+Card fogLampCard(&dashboard, BUTTON_CARD, "Front Fog lamp");
+Card rearFogLampCard(&dashboard, BUTTON_CARD, "Rear Fog lamp");
 Card leftTurningIndicatorCard(&dashboard, BUTTON_CARD, "Indicator left");
 Card rightTurningIndicatorCard(&dashboard, BUTTON_CARD, "Indicator right");
 Card indicatorsBlinkCard(&dashboard, BUTTON_CARD, "Indicators blink");
 Card doorOpenCard(&dashboard, BUTTON_CARD, "Door open warning");
-Card gearCard(&dashboard, SLIDER_CARD, "Selected gear", "", 0, 13);
-Card backlightCard(&dashboard, SLIDER_CARD, "Backlight brightness", "%", 0, 99);
-Card coolantTemperatureCard(&dashboard, SLIDER_CARD, "Coolant temperature", "C", 50, 130);
-//Card buttonMenuCard(&dashboard, BUTTON_CARD, "Steering button menu");
-//Card buttonLeftCard(&dashboard, BUTTON_CARD, "Steering button left");
-//Card buttonRightCard(&dashboard, BUTTON_CARD, "Steering button right");
-Card buttonUpCard(&dashboard, BUTTON_CARD, "Steering button up");
-Card buttonDownCard(&dashboard, BUTTON_CARD, "Steering button down");
-Card buttonOkCard(&dashboard, BUTTON_CARD, "Steering button OK");
-//Card buttonAsteriskCard(&dashboard, BUTTON_CARD, "Steering button asterisk");
-//Card buttonViewCard(&dashboard, BUTTON_CARD, "Steering button view");
-
-
-// TEsting only. To be removed
-/*
-Card val0Card(&dashboard, SLIDER_CARD, "VAL0", "", 0, 255);
-Card val1Card(&dashboard, SLIDER_CARD, "VAL1", "", 0, 255);
-Card val2Card(&dashboard, SLIDER_CARD, "VAL2", "", 0, 255);
-Card val3Card(&dashboard, SLIDER_CARD, "VAL3", "", 0, 255);
-Card val4Card(&dashboard, SLIDER_CARD, "VAL4", "", 0, 255);
-Card val5Card(&dashboard, SLIDER_CARD, "VAL5", "", 0, 255);
-Card val6Card(&dashboard, SLIDER_CARD, "VAL6", "", 0, 255);
-Card val7Card(&dashboard, SLIDER_CARD, "VAL7", "", 0, 255);
-uint8_t val0 = 0, val1 = 0, val2 = 0, val3 = 0, val4 = 0, val5 = 0, val6 = 0, val7 = 0;
-*/
+Card espLightCard(&dashboard, BUTTON_CARD, "Traction indicator");
+Card absLightCard(&dashboard, BUTTON_CARD, "ABS indicator");
+Card parkingBrakeCard(&dashboard, BUTTON_CARD, "Parking brake indicator");
+Card gearCard(&dashboard, SLIDER_CARD, "Selected gear", "", 0, 10);
+//Card backlightCard(&dashboard, SLIDER_CARD, "Backlight brightness", "%", 0, 99); // TODO: Figure out CAN ID
+Card batteryWarningCard(&dashboard, BUTTON_CARD, "Battery warning");
+//Card coolantTemperatureCard(&dashboard, SLIDER_CARD, "Coolant temperature", "C", 50, 130); // TODO: Figure out CAN ID
 
 // UDP server configuration (for telemetry data)
 AsyncUDP forzaUdp;
@@ -148,11 +132,27 @@ StaticJsonDocument<400> doc;
 
 void setup() {
   // Define the outputs
+  pinMode(sprinklerWaterSensor, OUTPUT);
+  pinMode(coolantShortageSensor, OUTPUT);
+  pinMode(oilPressureSwitch, OUTPUT);
+  pinMode(handbrakeIndicator, OUTPUT);
+  pinMode(brakeFluidWarning, OUTPUT);
+
   pinMode(SPI_CS_PIN, OUTPUT);
   pinMode(CAN_INT, INPUT);
 
+  digitalWrite(sprinklerWaterSensor, HIGH);
+  digitalWrite(coolantShortageSensor, HIGH);
+  digitalWrite(oilPressureSwitch, LOW);
+  digitalWrite(handbrakeIndicator, HIGH);
+  digitalWrite(brakeFluidWarning, LOW);
+
   fuelPot.begin(fuelPotInc, fuelPotDir, fuelPotCs);
   fuelPot.setPosition(100, true); // Force the pot to a known value
+
+  fuelPot2.begin(fuelPotInc, fuelPotDir, fuelPot2Cs);
+  fuelPot2.setPosition(100, true); // Force the pot to a known value
+  fuelPot2.setPosition(100, true); // Force the pot to a known value
 
   //Begin with Serial Connection
   Serial.begin(115200);
@@ -251,7 +251,7 @@ void setupWebPage() {
     gearCard.update(value);
     dashboard.sendUpdates();
   });
-
+/*
   backlightCard.attachCallback([&](int value) {
     backlight_brightness = value;
     backlightCard.update(value);
@@ -263,103 +263,43 @@ void setupWebPage() {
     coolantTemperatureCard.update(value);
     dashboard.sendUpdates();
   });
-/*
-    val0Card.attachCallback([&](int value) {
-    val0 = value;
-    val0Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-  val1Card.attachCallback([&](int value) {
-    val1 = value;
-    val1Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-    val2Card.attachCallback([&](int value) {
-    val2 = value;
-    val2Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-    val3Card.attachCallback([&](int value) {
-    val3 = value;
-    val3Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-    val4Card.attachCallback([&](int value) {
-    val4 = value;
-    val4Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-    val5Card.attachCallback([&](int value) {
-    val5 = value;
-    val5Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-    val6Card.attachCallback([&](int value) {
-    val6 = value;
-    val6Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-    val7Card.attachCallback([&](int value) {
-    val7 = value;
-    val7Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-  buttonMenuCard.attachCallback([&](int value) {
-    mqbDash.sendSteeringWheelControls(1);
-    buttonMenuCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  buttonLeftCard.attachCallback([&](int value) {
-    mqbDash.sendSteeringWheelControls(3);
-    buttonLeftCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  buttonRightCard.attachCallback([&](int value) {
-    mqbDash.sendSteeringWheelControls(2);
-    buttonRightCard.update(value);
-    dashboard.sendUpdates();
-  });
 */
-  buttonUpCard.attachCallback([&](int value) {
-    mqbDash.sendSteeringWheelControls(4);
-    buttonUpCard.update(value);
+  daylightLightCard.attachCallback([&](int value) {
+    light_daylight = (bool)value;
+    daylightLightCard.update(value);
+    dashboard.sendUpdates();
+  });
+  
+  rearFogLampCard.attachCallback([&](int value) {
+    light_fog_rear = (bool)value;
+    rearFogLampCard.update(value);
     dashboard.sendUpdates();
   });
 
-  buttonDownCard.attachCallback([&](int value) {
-    mqbDash.sendSteeringWheelControls(5);
-    buttonDownCard.update(value);
+  espLightCard.attachCallback([&](int value) {
+    signal_offroad = (bool)value;
+    espLightCard.update(value);
     dashboard.sendUpdates();
   });
 
-  buttonOkCard.attachCallback([&](int value) {
-    mqbDash.sendSteeringWheelControls(6);
-    buttonOkCard.update(value);
-    dashboard.sendUpdates();
-  });
-/*
-  buttonAsteriskCard.attachCallback([&](int value) {
-    mqbDash.sendSteeringWheelControls(7);
-    buttonAsteriskCard.update(value);
+  absLightCard.attachCallback([&](int value) {
+    signal_abs = (bool)value;
+    absLightCard.update(value);
     dashboard.sendUpdates();
   });
 
-  buttonViewCard.attachCallback([&](int value) {
-    mqbDash.sendSteeringWheelControls(7);
-    buttonViewCard.update(value);
+  parkingBrakeCard.attachCallback([&](int value) {
+    signal_handbrake = (bool)value;
+    parkingBrakeCard.update(value);
     dashboard.sendUpdates();
   });
-*/
+
+  batteryWarningCard.attachCallback([&](int value) {
+    battery_warning = (bool)value;
+    batteryWarningCard.update(value);
+    dashboard.sendUpdates();
+  });
+
   server.begin();
 
   updateWebDashboard();
@@ -373,18 +313,47 @@ void CanSend(short address, byte a, byte b, byte c, byte d, byte e, byte f, byte
 
 // Fuel gauge control (0-100%)
 void setFuel(int percentage) {
-  int desiredPosition = map(percentage, 0, 100, minimumFuelPotValue, maximumFuelPotValue);
-  fuelPot.setPosition(desiredPosition, false);
+  if (dualFuelPot) {
+    int pot1Percentage = (percentage > 50) ? percentage - 50 : 0;
+    int pot2Percentage = (percentage < 50) ? percentage : 50;
+
+    int desiredPositionPot1 = map(pot1Percentage, 0, 50, minimumFuelPotValue, maximumFuelPotValue);
+    fuelPot.setPosition(desiredPositionPot1, false);
+  
+    int desiredPositionPot2 = map(pot2Percentage, 0, 50, minimumFuelPot2Value, maximumFuelPot2Value);
+    fuelPot2.setPosition(desiredPositionPot2, false);
+  } else {
+    int desiredPosition = map(percentage, 0, 100, minimumFuelPotValue, maximumFuelPotValue);
+    fuelPot.setPosition(desiredPosition, false);
+  }
 }
 
 void loop() {
   // Update the dashboard
-  mqbDash.updateWithState(speed*speedCorrectionFactor, rpm*rpmCorrectionFactor, backlight_brightness, leftTurningIndicator, rightTurningIndicator, turning_lights_blinking, gear, coolantTemperature);
+  pq46Dash.updateWithState(speed * speedCorrectionFactor,
+                           rpm * rpmCorrectionFactor,
+                           backlight_brightness,
+                           leftTurningIndicator,
+                           rightTurningIndicator,
+                           turning_lights_blinking,
+                           light_daylight,
+                           light_highbeam,
+                           light_fog,
+                           light_fog_rear,
+                           battery_warning,
+                           trunklid_open,
+                           door_open,
+                           signal_lowtirepressure,
+                           signal_offroad,
+                           signal_abs,
+                           gear,
+                           coolantTemperature);
 
   setFuel(fuelQuantity);
 
-  //Testing only. To be removed
-  //mqbDash.updateTestBuffer(val0, val1, val2, val3, val4, val5, val6, val7);
+  // Manipulation with digital I/O
+  digitalWrite(oilPressureSwitch, rpm > 1500 ? LOW : HIGH);
+  digitalWrite(handbrakeIndicator, signal_handbrake ? LOW : HIGH);
 
   // Serial message handling
   readSerialJson();
@@ -409,8 +378,14 @@ void updateWebDashboard() {
     indicatorsBlinkCard.update(turning_lights_blinking);
     doorOpenCard.update(door_open);
     gearCard.update(gear);
-    backlightCard.update(backlight_brightness);
-    coolantTemperatureCard.update(coolantTemperature);
+    //backlightCard.update(backlight_brightness);
+    //coolantTemperatureCard.update(coolantTemperature);
+    daylightLightCard.update(light_daylight);
+    rearFogLampCard.update(light_fog_rear);
+    espLightCard.update(signal_offroad);
+    absLightCard.update(signal_abs);
+    parkingBrakeCard.update(signal_handbrake);
+    batteryWarningCard.update(battery_warning);
     dashboard.sendUpdates();
 
     lastWebDashboardUpdateTime = millis();
@@ -553,9 +528,9 @@ void listenForzaUDP(int port) {
         mempcpy(rpmBuff, (packet.data() + 319), 1);
         int forzaGear = (int)(rpmBuff[0]);
         if (forzaGear == 0) {
-          gear = 11;
-        } else if (forzaGear > 9) {
-          gear = 13;
+          gear = 8;
+        } else if (forzaGear > 7) {
+          gear = 10;
         } else {
           gear = forzaGear;
         }
@@ -587,11 +562,11 @@ void listenBeamNGUDP(int port) {
         mempcpy(rpmBuff, (packet.data() + 10), 1);
         int beamGear = (int)(0xFF & rpmBuff[0]);
         if (beamGear == 0) {
-          gear = 11;
+          gear = 8;
         } else if (beamGear == 1) {
-          gear = 13;
+          gear = 0;
         } else if (beamGear >= 9) {
-          gear = 13;
+          gear = 10;
         } else {
           gear = beamGear - 1;
         }
@@ -634,9 +609,7 @@ void listenBeamNGUDP(int port) {
 void decodeSimhub() {
   rpm = doc["rpm"];
   int max_rpm = doc["mrp"];
-  if (max_rpm > maximumRPMValue) {
-    rpm = map(rpm, 0, max_rpm, 0, maximumRPMValue);
-  }
+  if (max_rpm > maximumRPMValue) { rpm = map(rpm, 0, max_rpm, 0, maximumRPMValue); } // Cap the RPM
 
   const char* simGear = doc["gea"];
   switch(simGear[0]) {
@@ -655,7 +628,7 @@ void decodeSimhub() {
 
   speed = doc["spe"];
   if (speed > maximumSpeedValue) { speed = maximumSpeedValue; }  // Cap the speed
-  
+
   leftTurningIndicator = doc["lft"];
   rightTurningIndicator = doc["rit"];
   coolantTemperature = doc["oit"];

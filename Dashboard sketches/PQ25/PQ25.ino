@@ -1,13 +1,11 @@
 // ####################################################################################################################
 //
 // CarCluster
-// Polo 6r edition
+// PQ25 (VW Polo 6R) Edition
 // https://github.com/r00li/CarCluster
 //
 // By Andrej Rolih
 // https://www.r00li.com
-//
-// Based on Volkswagen CAN BUS Gaming by Leon Bataille ( https://hackaday.io/project/6288-volkswagen-can-bus-gaming )
 //
 // ####################################################################################################################
 
@@ -24,22 +22,35 @@
 #include <ESPAsyncWebServer.h>  // Requirement for ESP-DASH (install manually from:  https://github.com/me-no-dev/ESPAsyncWebServer )
 #include <ESPDash.h>            // Web dashboard ( install from library manager: ESP-DASH by Ayush Sharma - tested using 4.0.1)
 
+#include "PQ25Dash.h"
 
 
 // User configuration
-const int forzaUDPPort = 1101;             // UDP Port to listen to for Forza Motorsport. Configure Forza to send telemetry data to this port
-const int beamNGUDPPort = 1102;            // UDP Port to listen to for Beam NG. Configure Beam to send telemetry data to this port
-const int updateClusterDelayMs = 5;        // At least how much time (in ms) must pass before we send the data to cluster again. Set to 0 for as fast as possible. Should be no faster than 10ms - causes cluster to be overwhelmed.
-const int minimumFuelPotValue = 18;        // Calibration of the fuel pot - minimum value
-const int maximumFuelPotValue = 85;        // Calibration of the fuel pot - maximum value
+// In order to connect to wifi the ESP will on first boot create a wifi access point called CarCluster. Connect to it (password is "cluster"),
+// then open your web browser and navigate to 192.168.4.1 and use the UI there to connect your wifi network.
+// If wifi is not connected after 3 minutes the ESP will continue normal operation and you can use it in Simhub/serial mode
+const int forzaUDPPort = 1101;                           // UDP Port to listen to for Forza Motorsport. Configure Forza to send telemetry data to this port
+const int beamNGUDPPort = 1102;                          // UDP Port to listen to for Beam NG. Configure Beam to send telemetry data to this port
+const unsigned long webDashboardUpdateInterval = 2000;   // How often is the web dashboard updated
+const boolean dualFuelPot = false;          // Does the cluster use dual fuel senders?
+const int minimumFuelPotValue = 18;         // Calibration of fuel pot - minimum value
+const int maximumFuelPotValue = 83;         // Calibration of fuel pot - maximum value
+const int minimumFuelPot2Value = 17;        // Calibration of fuel pot 2 - minimum value
+const int maximumFuelPot2Value = 75;        // Calibration of fuel pot 2 - maximum value
+const float speedCorrectionFactor = 0.98;   // Calibration of speed gauge
+const float rpmCorrectionFactor = 1.08;     // Calibration of RPM gauge
+const int maximumRPMValue = 8000;           // Set what is the maximum RPM on your cluster
+const int maximumSpeedValue = 240;          // Set what is the maximum speed on your cluster (in km/h)  
 
 // Pin configuration
 const int sprinklerWaterSensor = 4;
 const int coolantShortageSensor = 16;
 const int oilPressureSwitch = 15;
+const int handbrakeIndicator = 13;
 const int fuelPotInc = 14;
 const int fuelPotDir = 27;
 const int fuelPotCs = 12;
+const int fuelPot2Cs = 33;
 const int SPI_CS_PIN = 5;
 const int CAN_INT = 2;
 
@@ -47,44 +58,27 @@ const int CAN_INT = 2;
 // Use these variables to set what you want to see on the dashboard
 int speed = 0;                           // Car speed in km/h
 int rpm = 0;                             // Set the rev counter
-boolean backlight = true;                // Turn the automatic dashboard backlight on or off
 uint8_t backlight_brightness = 99;       // Backlight brightness 0-99 (only valid when backlight == true)
 boolean leftTurningIndicator = false;    // Left blinker
 boolean rightTurningIndicator = false;   // Right blinker
 boolean turning_lights_blinking = true;  // Choose the mode of the turning lights (blinking or just shining)
-boolean add_distance = false;            // Dashboard counts the kilometers (can't be undone)
-int distance_multiplier = 2;             // Sets the refresh rate of the odometer (Standard 2)
+uint8_t gear = 0;                        // The gear that the car is in: 0 = P, 1-7 = Gear 1-7, 8 = R, 9 = N, 10 = D
+int fuelQuantity = 100;                  // Amount of fuel
 boolean signal_abs = false;              // Shows ABS Signal on dashboard
 boolean signal_offroad = false;          // Simulates Offroad drive mode
 boolean signal_handbrake = false;        // Enables handbrake signal
 boolean signal_lowtirepressure = false;  // Simulates low tire pressure
-boolean oil_pressure_simulation = true;  // Set this to true if dashboard starts to beep
 boolean door_open = false;               // Simulate open doors
-boolean clutch_control = false;          // Displays the Message "Kupplung" (German for Clutch) on the dashboard's LCD
-boolean check_lamp = false;              // Show 'Check Lamp' Signal on dashboard. B00010000 = on, B00000 = off
 boolean trunklid_open = false;           // Simulate open trunk lid (Kofferraumklappe). B00100000 = open, B00000 = closed
 boolean battery_warning = false;         // Show Battery Warning.
-boolean keybattery_warning = false;      // Show message 'Key Battery Low' on Display. But just after first start of dashboard.
 boolean light_fog = false;               // Enable Fog Light indicator
 boolean light_highbeam = false;          // Enable High Beam Light
-boolean seat_belt = false;               // Switch Seat Betl warning light.
-boolean signal_dieselpreheat = false;    // Simualtes Diesel Preheating
-boolean signal_watertemp = false;        // Simualtes high water temperature
-boolean dpf_warning = false;             // Shows the Diesel particle filter warning signal.
-int fuelQuantity = 100;                  // Amount of fuel
-uint8_t gear = 0;                        // The gear that the car is in: 0 = P, 1-7 = Gear 1-7, 8 = R, 9 = N, 10 = D
 
 // Helper constants
-#define lo8(x) ((int)(x)&0xff)
-#define hi8(x) ((int)(x) >> 8)
-
 const unsigned int MAX_SERIAL_MESSAGE_LENGTH = 250;
 
 // Global variables for various dashboard functionallity
-int turning_lights_counter = 0;
-int distance_counter = 0;
-uint8_t iterationCount = 0;
-unsigned long lastDashboardUpdateTime = 0;
+unsigned long lastWebDashboardUpdateTime = 0;
 
 // CAN bus configuration
 MCP_CAN CAN(SPI_CS_PIN);  // Set CS pin
@@ -95,24 +89,32 @@ unsigned char canRxLen = 0;
 unsigned char canRxBuf[8];
 char canRxMsgString[128];  // Array to store serial string
 
+// CAN bus devices
+PQ25Dash pq25Dash(CAN);
+
 // Fuel level simulation
 X9C102 fuelPot = X9C102();
+X9C102 fuelPot2 = X9C102();
 
 // Dyna HTML configuration
 AsyncWebServer server(80);
 ESPDash dashboard(&server);
 
-Card speedCard(&dashboard, SLIDER_CARD, "Speed", "km/h", 0, 240);
+Card speedCard(&dashboard, SLIDER_CARD, "Speed", "km/h", 0, 260);
 Card rpmCard(&dashboard, SLIDER_CARD, "RPM", "rpm", 0, 8000);
 Card fuelCard(&dashboard, SLIDER_CARD, "Fuel qunaity", "%", 0, 100);
 Card highBeamCard(&dashboard, BUTTON_CARD, "High beam");
-Card fogLampCard(&dashboard, BUTTON_CARD, "Fog lamp");
+Card fogLampCard(&dashboard, BUTTON_CARD, "Front Fog lamp");
 Card leftTurningIndicatorCard(&dashboard, BUTTON_CARD, "Indicator left");
 Card rightTurningIndicatorCard(&dashboard, BUTTON_CARD, "Indicator right");
 Card indicatorsBlinkCard(&dashboard, BUTTON_CARD, "Indicators blink");
 Card doorOpenCard(&dashboard, BUTTON_CARD, "Door open warning");
+Card espLightCard(&dashboard, BUTTON_CARD, "Traction indicator");
+Card absLightCard(&dashboard, BUTTON_CARD, "ABS indicator");
+Card parkingBrakeCard(&dashboard, BUTTON_CARD, "Parking brake indicator");
 Card gearCard(&dashboard, SLIDER_CARD, "Selected gear", "", 0, 10);
-Card backlightCard(&dashboard, SLIDER_CARD, "Backlight brightness", "%", 0, 99);
+Card backlightCard(&dashboard, SLIDER_CARD, "Backlight brightness", "%", 0, 99); // TODO: Figure out CAN ID
+Card batteryWarningCard(&dashboard, BUTTON_CARD, "Battery warning");
 
 // UDP server configuration (for telemetry data)
 AsyncUDP forzaUdp;
@@ -126,6 +128,7 @@ void setup() {
   pinMode(sprinklerWaterSensor, OUTPUT);
   pinMode(coolantShortageSensor, OUTPUT);
   pinMode(oilPressureSwitch, OUTPUT);
+  pinMode(handbrakeIndicator, OUTPUT);
 
   pinMode(SPI_CS_PIN, OUTPUT);
   pinMode(CAN_INT, INPUT);
@@ -133,9 +136,14 @@ void setup() {
   digitalWrite(sprinklerWaterSensor, HIGH);
   digitalWrite(coolantShortageSensor, HIGH);
   digitalWrite(oilPressureSwitch, LOW);
+  digitalWrite(handbrakeIndicator, HIGH);
 
   fuelPot.begin(fuelPotInc, fuelPotDir, fuelPotCs);
   fuelPot.setPosition(100, true); // Force the pot to a known value
+
+  fuelPot2.begin(fuelPotInc, fuelPotDir, fuelPot2Cs);
+  fuelPot2.setPosition(100, true); // Force the pot to a known value
+  fuelPot2.setPosition(100, true); // Force the pot to a known value
 
   //Begin with Serial Connection
   Serial.begin(115200);
@@ -151,7 +159,7 @@ void setup() {
   } else {
       Serial.println("Wifi cvonnected...yeey :)");
   }
-  
+
   Serial.println();
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
@@ -219,7 +227,7 @@ void setupWebPage() {
 
   indicatorsBlinkCard.attachCallback([&](int value) {
     turning_lights_blinking = (bool)value;
-    rightTurningIndicatorCard.update(value);
+    indicatorsBlinkCard.update(value);
     dashboard.sendUpdates();
   });
 
@@ -241,7 +249,33 @@ void setupWebPage() {
     dashboard.sendUpdates();
   });
 
+  espLightCard.attachCallback([&](int value) {
+    signal_offroad = (bool)value;
+    espLightCard.update(value);
+    dashboard.sendUpdates();
+  });
+
+  absLightCard.attachCallback([&](int value) {
+    signal_abs = (bool)value;
+    absLightCard.update(value);
+    dashboard.sendUpdates();
+  });
+
+  parkingBrakeCard.attachCallback([&](int value) {
+    signal_handbrake = (bool)value;
+    parkingBrakeCard.update(value);
+    dashboard.sendUpdates();
+  });
+
+  batteryWarningCard.attachCallback([&](int value) {
+    battery_warning = (bool)value;
+    batteryWarningCard.update(value);
+    dashboard.sendUpdates();
+  });
+
   server.begin();
+
+  updateWebDashboard();
 }
 
 // Send CAN Command (short version)
@@ -252,269 +286,58 @@ void CanSend(short address, byte a, byte b, byte c, byte d, byte e, byte f, byte
 
 // Fuel gauge control (0-100%)
 void setFuel(int percentage) {
-  int desiredPosition = map(percentage, 0, 100, minimumFuelPotValue, maximumFuelPotValue);
-  fuelPot.setPosition(desiredPosition, false);
+  if (dualFuelPot) {
+    int pot1Percentage = (percentage > 50) ? percentage - 50 : 0;
+    int pot2Percentage = (percentage < 50) ? percentage : 50;
+
+    int desiredPositionPot1 = map(pot1Percentage, 0, 50, minimumFuelPotValue, maximumFuelPotValue);
+    fuelPot.setPosition(desiredPositionPot1, false);
+  
+    int desiredPositionPot2 = map(pot2Percentage, 0, 50, minimumFuelPot2Value, maximumFuelPot2Value);
+    fuelPot2.setPosition(desiredPositionPot2, false);
+  } else {
+    int desiredPosition = map(percentage, 0, 100, minimumFuelPotValue, maximumFuelPotValue);
+    fuelPot.setPosition(desiredPosition, false);
+  }
 }
 
 void loop() {
-  // Prepare the data as needed
+  // Update the dashboard
+  pq25Dash.updateWithState(speed * speedCorrectionFactor,
+                           rpm * rpmCorrectionFactor,
+                           backlight_brightness,
+                           leftTurningIndicator,
+                           rightTurningIndicator,
+                           turning_lights_blinking,
+                           light_highbeam,
+                           light_fog,
+                           battery_warning,
+                           trunklid_open,
+                           door_open,
+                           signal_lowtirepressure,
+                           signal_offroad,
+                           signal_abs,
+                           gear);
 
-  if (millis() - lastDashboardUpdateTime >= updateClusterDelayMs) {
-    // This should probably be done using a more sophisticated method like a scheduler, but for now this seems to work.
-    // This is done in order to not cause issues when sending the data too frequently.
-    // If we are sending this data too frequently then the cluster will start rebooting randomly when showing things like ABS/parking brake/... lights
+  setFuel(fuelQuantity);
 
-    // Oil pressure simulation
-    if (oil_pressure_simulation == true) {
-      //Set Oil Pressure Switch
-      if (rpm > 1500) {
-        digitalWrite(oilPressureSwitch, LOW);
-      } else {
-        digitalWrite(oilPressureSwitch, HIGH);
-      }
-    }
-
-    // Turning Lights (blinkers)
-    int turning_lights = 0;
-    if (leftTurningIndicator == true && rightTurningIndicator == false) {
-      turning_lights = 1;
-    } else if (rightTurningIndicator == true && leftTurningIndicator == false) {
-      turning_lights = 2;
-    } else if (leftTurningIndicator == true && rightTurningIndicator == true) {
-      turning_lights = 3;
-    } else {
-      turning_lights = 0;
-    }
-
-    int temp_turning_lights = 0;
-    if (turning_lights_blinking == true) {
-      turning_lights_counter = turning_lights_counter + 1;
-
-      if (turning_lights_counter <= 40) {
-        temp_turning_lights = turning_lights;
-      } else if (turning_lights_counter > 40 && turning_lights_counter < 80) {
-        temp_turning_lights = 0;
-      } else {
-        turning_lights_counter = 0;
-      }
-    } else {
-      temp_turning_lights = turning_lights;
-    }
-
-    // DPF
-    int temp_dpf_warning = 0;
-    if (dpf_warning == true) {
-      temp_dpf_warning = B00000010;
-    } else {
-      temp_dpf_warning = B00000000;
-    }
-
-    // Seat Belt
-    int temp_seat_belt = 0;
-    if (seat_belt == true) {
-      temp_seat_belt = B00000100;
-    } else {
-      temp_seat_belt = B00000000;
-    }
-
-    // Battery Warning
-    int temp_battery_warning = 0;
-    if (battery_warning == true) {
-      temp_battery_warning = B10000000;
-    } else {
-      temp_battery_warning = B00000000;
-    }
-
-    // Trunk Lid (Kofferraumklappe)
-    int temp_trunklid_open = 0;
-    if (trunklid_open == true) {
-      temp_trunklid_open = B00100000;
-    } else {
-      temp_trunklid_open = B00000000;
-    }
-
-    // Check Lamp Signal
-    int temp_check_lamp = 0;
-    if (check_lamp == true) {
-      temp_check_lamp = B00010000;
-    } else {
-      temp_check_lamp = B00000000;
-    }
-
-    // Clutch Text on LCD
-    int temp_clutch_control = 0;
-    if (clutch_control == true) {
-      temp_clutch_control = B00000001;
-    } else {
-      temp_clutch_control = B00000000;
-    }
-
-    // Warning for low key battery
-    int temp_keybattery_warning = 0;
-    if (keybattery_warning == true) {
-      temp_keybattery_warning = B10000000;
-    } else {
-      temp_keybattery_warning = B00000000;
-    }
-
-    // Lightmode Selection (Fog Light and/or High Beam)
-    int temp_light_highbeam = 0;
-    if (light_highbeam == true) {
-      temp_light_highbeam = B01000000;
-    } else {
-      temp_light_highbeam = B00000000;
-    }
-
-    int temp_light_fog = 0;
-    if (light_fog == true) {
-      temp_light_fog = B00100000;
-    } else {
-      temp_light_fog = B00000000;
-    }
-
-    int lightmode = temp_light_highbeam + temp_light_fog;
-
-    // Engine Options (Water Temperature, Diesel Preheater)
-    int temp_signal_dieselpreheat = 0;
-    if (signal_dieselpreheat == true) {
-      temp_signal_dieselpreheat = B00000010;
-    } else {
-      temp_signal_dieselpreheat = B00000000;
-    }
-
-    int temp_signal_watertemp = 0;
-    if (signal_watertemp == true) {
-      temp_signal_watertemp = B00010000;
-    } else {
-      temp_signal_watertemp = B00000000;
-    }
-
-    int engine_control = temp_signal_dieselpreheat + temp_signal_watertemp;
-
-    // Drivemode Selection (ABS, Offroad, Low Tire Pressure, handbrake)
-    int temp_signal_abs = 0;
-    if (signal_abs == true) {
-      temp_signal_abs = B0001;
-    } else {
-      temp_signal_abs = B0000;
-    }
-
-    int temp_signal_offroad = 0;
-    if (signal_offroad == true) {
-      temp_signal_offroad = B0010;
-    } else {
-      temp_signal_offroad = B0000;
-    }
-
-    int temp_signal_handbrake = 0;
-    if (signal_handbrake == true) {
-      temp_signal_handbrake = B0100;
-    } else {
-      temp_signal_handbrake = B0000;
-    }
-
-    int temp_signal_lowtirepressure = 0;
-    if (signal_lowtirepressure == true) {
-      temp_signal_lowtirepressure = B1000;
-    } else {
-      temp_signal_lowtirepressure = B0000;
-    }
-    int drive_mode = temp_signal_abs + temp_signal_offroad + temp_signal_handbrake + temp_signal_lowtirepressure;
-
-    // Prepare Speed
-    int temp_speed = speed / 0.0070;  //KMH=1.12 MPH=0.62
-    byte speedL = lo8(temp_speed);
-    byte speedH = hi8(temp_speed);
-
-    // Prepare RPM
-    short tempRPM = rpm * (4 + (float)((float)(1 * 1600) / (float)rpm));
-    byte rpmL = lo8(tempRPM);
-    byte rpmH = hi8(tempRPM);
-
-    // Prepare gear indicator
-    uint tempGear = gear;
-    switch (tempGear) {
-      case 0: tempGear = 0; break;                                     // P
-      case 1 ... 7: tempGear = 0x2E + ((tempGear - 1) * 0x10); break;  // 1-7
-      case 8: tempGear = 0x36; break;                                  // R
-      case 9: tempGear = 0x40; break;                                  // N
-      case 10: tempGear = 0x56; break;                                 // D
-    }
-
-    // Prepare distance adder
-    if (add_distance == true) {
-      int distance_adder = temp_speed * distance_multiplier;
-      distance_counter += distance_adder;
-      if (distance_counter > distance_adder) { distance_counter = 0; }
-    }
-
-    // Send the prepared data
-
-    //Immobilizer
-    CanSend(0x3D0, 0, 0x80, 0, 0, 0, 0, 0, 0);
-
-    // Engine on and ESP enabled
-    // Random is required to keep the speed needle steady
-    // After 63 it's not stable anymore
-    // With temp1 = 4, speed=100 needle is solid... possibly temp1 is checksum
-    uint8_t tempCounter = speed > 0 ? iterationCount : 0;
-    uint8_t tempValue1 = (speed >= 63) ? random(0, 255) : 0;
-    uint8_t tempValue2 = (speed >= 63) ? random(0, 255) : 0;
-    CanSend(0xDA0, 0x01, speedL, speedH, 0x00, 0x00, tempCounter, tempValue1, tempValue2);
-
-    //Enable Cruise Control
-    //CanSend(0x289, 0x00, B00000001, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-
-    //Turning Lights 2
-    CanSend(0x470, temp_battery_warning + temp_turning_lights, temp_trunklid_open + door_open, (backlight ? backlight_brightness | 1 : 0), 0x00, temp_check_lamp + temp_clutch_control, temp_keybattery_warning, 0x00, lightmode);
-
-    //Diesel engine
-    CanSend(0x480, 0x00, engine_control, 0x00, 0x00, 0x00, temp_dpf_warning, 0x00, 0x00);
-
-    ///Engine
-    //CanSend(0x388, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-
-    //Cruise Control
-    //CanSend(0x289, 0x00, B00000101, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-
-    //Motorspeed
-    CanSend(0x320, 0x00, (speedL * 100), (speedH * 100), 0x00, 0x00, 0x00, 0x00, 0x00);
-
-    //RPM
-    CanSend(0x280, 0x49, 0x0E, rpmL, rpmH, 0x0E, 0x00, 0x1B, 0x0E);
-
-    //Speed
-    CanSend(0x5A0, 0xFF, speedL, speedH, drive_mode, 0x00, lo8(distance_counter), hi8(distance_counter), 0xad);
-
-    //ABS
-    CanSend(0x1A0, iterationCount, speedL, speedH, 0x34, 0xFE, 0xFE, 0x00, 0x04);
-
-    //Airbag
-    CanSend(0x050, 0x00, 0x80, temp_seat_belt, 0x00, 0x00, 0x00, 0x00, 0x00);
-
-    // Last byte 56=D, 36=R, 40=N, 2E=1, 3E=2, 4E=3, 5E=4 6E=5, 7E=6, 8E=7
-    CanSend(0x540, 0x90, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x02, tempGear);
-
-    // Key inserted, car started, ignition on?
-    CanSend(0x572, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F);
-
-    setFuel(fuelQuantity);
-
-    // Iteration counters used by a few CAN messages that are needed
-    iterationCount++;
-
-    lastDashboardUpdateTime = millis();
-  }
+  // Manipulation with digital I/O
+  digitalWrite(oilPressureSwitch, rpm > 1500 ? LOW : HIGH);
+  digitalWrite(handbrakeIndicator, signal_handbrake ? LOW : HIGH);
 
   // Serial message handling
   readSerialJson();
+
+  // Handle data from connected CAN hardware
   readCanBuffer();
+
+  // Update the web dashboard
   updateWebDashboard();
 }
 
 void updateWebDashboard() {
   // Prevent too frequent updates of the web dashboard
-  if (iterationCount == 50 || iterationCount == 100 || iterationCount == 255) {
+  if (millis() - lastWebDashboardUpdateTime >= webDashboardUpdateInterval) {
     speedCard.update(speed);
     rpmCard.update(rpm);
     fuelCard.update(fuelQuantity);
@@ -526,7 +349,13 @@ void updateWebDashboard() {
     doorOpenCard.update(door_open);
     gearCard.update(gear);
     backlightCard.update(backlight_brightness);
+    espLightCard.update(signal_offroad);
+    absLightCard.update(signal_abs);
+    parkingBrakeCard.update(signal_handbrake);
+    batteryWarningCard.update(battery_warning);
     dashboard.sendUpdates();
+
+    lastWebDashboardUpdateTime = millis();
   }
 }
 
@@ -580,6 +409,8 @@ void readSerialJson() {
 
         CanSend(address, p1, p2, p3, p4, p5, p6, p7, p8);
       } else if (action == 10) {
+        // Used to decode custom protocol from Simhub in the following format:
+        // {"action":10, "spe":54, "gea":"2", "rpm":3590, "mrp":7999, "lft":0, "rit":0, "oit":0, "pau":0, "run":0, "fue":0, "hnb":0, "abs":0, "tra":0}
         decodeSimhub();
       }
 
@@ -649,15 +480,15 @@ void listenForzaUDP(int port) {
           door_open = false;
         }
 
-        if (max_rpm > 8000) {
-          rpm = map(rpm, 0, max_rpm, 0, 8000);
+        if (max_rpm > maximumRPMValue) {
+          rpm = map(rpm, 0, max_rpm, 0, maximumRPMValue);
         }
 
         // SPEED
         mempcpy(rpmBuff, (packet.data() + 256), 4);
         int someSpeed = *((float*)rpmBuff);
         someSpeed = someSpeed * 3.6;
-        if (someSpeed > 240) { someSpeed = 240; }
+        if (someSpeed > maximumSpeedValue) { someSpeed = maximumSpeedValue; }
         speed = someSpeed;
 
         // GEAR
@@ -670,7 +501,7 @@ void listenForzaUDP(int port) {
         } else {
           gear = forzaGear;
         }
-        if (max_rpm == 0) { gear = 0; }  // Idle
+        if (max_rpm == 0) { gear = 10; }  // Idle
 
         // HANDBRAKE
         // For some reason keeping handbrake signal on causes weird issues with the cluster, keep it on for just a flash
@@ -711,13 +542,19 @@ void listenBeamNGUDP(int port) {
         mempcpy(rpmBuff, (packet.data() + 12), 4);
         int someSpeed = *((float*)rpmBuff);
         someSpeed = someSpeed * 3.6;               // Speed is in m/s
-        if (someSpeed > 240) { someSpeed = 240; }  // Cap the speed to 240 since the cluster doesn't go higher
+        if (someSpeed > maximumSpeedValue) { someSpeed = maximumSpeedValue; }  // Cap the speed
         speed = someSpeed;
 
         // CURRENT_ENGINE_RPM
         memcpy(rpmBuff, (packet.data() + 16), 4);
         rpm = *((float*)rpmBuff);
-        if (rpm > 8000) { rpm = 8000; }  // Cap the RPM to 8000 since the cluster doesn't go higher
+        if (rpm > maximumRPMValue) { rpm = maximumRPMValue; }  // Cap the RPM to 8000 since the cluster doesn't go higher
+
+        // ENGINE TEMPERATURE
+        //memcpy(rpmBuff, (packet.data() + 24), 4);
+        //coolantTemperature = *((float*)rpmBuff);
+        //if (coolantTemperature < 50) { coolantTemperature = 50; }
+        //if (coolantTemperature > 130) { coolantTemperature = 130; }
 
         // LIGHTS
         mempcpy(rpmBuff, (packet.data() + 44), 4);
@@ -739,9 +576,7 @@ void listenBeamNGUDP(int port) {
 void decodeSimhub() {
   rpm = doc["rpm"];
   int max_rpm = doc["mrp"];
-  if (max_rpm > 8000) {
-    rpm = map(rpm, 0, max_rpm, 0, 8000);
-  }
+  if (max_rpm > maximumRPMValue) { rpm = map(rpm, 0, max_rpm, 0, maximumRPMValue); } // Cap the RPM
 
   const char* simGear = doc["gea"];
   switch(simGear[0]) {
@@ -759,44 +594,14 @@ void decodeSimhub() {
   }
 
   speed = doc["spe"];
+  if (speed > maximumSpeedValue) { speed = maximumSpeedValue; }  // Cap the speed
+
   leftTurningIndicator = doc["lft"];
   rightTurningIndicator = doc["rit"];
-  int oilTemperature = doc["oit"]; // Not supported on Polo
+  //coolantTemperature = doc["oit"];
   door_open = (doc["pau"] != 0 || doc["run"] == 0);
   fuelQuantity = doc["fue"];
   signal_handbrake = doc["hnb"];
   signal_abs = doc["abs"];
   signal_offroad = doc["tra"];
 }
-
-/*
-// Some test data from a sniff of a more modern polo
-if (enabledLines[0] == 1) { CanSend(0x1A0, 0x00, 0x40, 0x12, 0x34, 0xFE, 0xFE, 0x00, 0x04); }
-if (enabledLines[1] == 1) { CanSend(0x4A0, 0xFC, 0x33, 0x28, 0x34, 0x4A, 0x34, 0x4A, 0x34); }
-if (enabledLines[2] == 1) { CanSend(0x3A0, 0xDA, 0x02, 0x36, 0xC9, 0x1C, 0x70, 0x44, 0x0F); }
-if (enabledLines[3] == 1) { CanSend(0x288, 0x8A, 0xB4, 0x30, 0x00, 0x51, 0x46, 0x9B, 0x09); }
-if (enabledLines[4] == 1) { CanSend(0x480, 0x94, 0x00, 0x4D, 0xE1, 0x18, 0x00, 0x06, 0x26); }
-if (enabledLines[5] == 1) { CanSend(0x48A, 0x7F, 0xDE, 0x01, 0x00, 0x00, 0x00, 0x00, 0xA0); }
-if (enabledLines[6] == 1) { CanSend(0x588, 0xF0, 0x42, 0x7C, 0x00, 0x00, 0x00, 0x04, 0x00); }
-if (enabledLines[7] == 1) { CanSend(0xD0, 0x94, 0x20, 0x04, 0x08, 0x08, 0xB0, 0x00, 0x00, 6); }
-if (enabledLines[8] == 1) { CanSend(0x320, 0x04, 0x00, 0x19, 0x2B, 0x34, 0x83, 0x37, 0x80); }
-if (enabledLines[9] == 1) { CanSend(0x440, 0x30, 0x58, 0x17, 0xFE, 0x79, 0x00, 0x4C, 0x13); }
-if (enabledLines[10] == 1) { CanSend(0x540, 0x90, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x02, 0x56); }
-if (enabledLines[11] == 1) { CanSend(0x280, 0x08, 0x2B, 0xA0, 0x16, 0x2B, 0x1E, 0x0B, 0x2D); }
-if (enabledLines[12] == 1) { CanSend(0x380, 0x60, 0x6E, 0x24, 0x00, 0x00, 0x00, 0xFE, 0x08); }
-if (enabledLines[13] == 1) { CanSend(0x488, 0x8B, 0x2D, 0x2A, 0x7C, 0xFE, 0x00, 0x3E, 0x30); }
-if (enabledLines[14] == 1) { CanSend(0x50, 0x00, 0x30, 0x51, 0x61, 0x00, 0x00, 0x00, 0x00, 5); }
-if (enabledLines[15] == 1) { CanSend(0x44C, 0x06, 0xA6, 0x45, 0x8A, 0x58, 0x02, 0xF5, 0xC0); }
-if (enabledLines[16] == 1) { CanSend(0x3D0, 0x00, 0x40, 0x08, 0x00, 0xC8, 0x5F, 0x00, 0x00, 6); }
-if (enabledLines[17] == 1) { CanSend(0x4A8, 0xFE, 0x7F, 0x00, 0x20, 0x00, 0x00, 0x20, 0x81); }
-if (enabledLines[18] == 1) { CanSend(0x5A0, 0x7E, 0xEC, 0x26, 0x20, 0x00, 0x05, 0x0B, 0x2B); }
-if (enabledLines[19] == 1) { CanSend(0x729, 0x04, 0x03, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 7); }
-if (enabledLines[20] == 1) { CanSend(0x470, 0x00, 0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x1F); }
-if (enabledLines[21] == 1) { CanSend(0x35F, 0x3A, 0x01, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00); }
-if (enabledLines[22] == 1) { CanSend(0x38A, 0xF1, 0x01, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 4); }
-if (enabledLines[23] == 1) { CanSend(0x5D0, 0x80, 0x02, 0x50, 0x2F, 0x39, 0x59, 0x00, 0x00); }
-if (enabledLines[24] == 1) { CanSend(0x570, 0x87, 0x00, 0xBA, 0x00, 0x00, 0x00, 0x00, 0x00, 5); }
-if (enabledLines[25] == 1) { CanSend(0x5E0, 0x00, 0x00, 0x12, 0x02, 0x4B, 0x00, 0x00, 0x00); }
-if (enabledLines[26] == 1) { CanSend(0x62B, 0x35, 0x10, 0x28, 0x40, 0x24, 0x00, 0x43, 0x40); }
-if (enabledLines[27] == 1) { CanSend(0x77E, 0x04, 0x62, 0x22, 0x06, 0x15, 0xAA, 0xAA, 0xAA); }
-*/

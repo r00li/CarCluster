@@ -25,7 +25,6 @@ void MQBDash::updateWithState(int speed,
     // This should probably be done using a more sophisticated method like a
     // scheduler, but for now this seems to work.
 
-    //sendSteeringWheelControls();
     sendIgnitionStatus();
     sendBacklightBrightness(backlightBrightness);
     sendESP20();
@@ -54,7 +53,7 @@ void MQBDash::updateWithState(int speed,
 
   if (millis() - lastDashboardUpdateTime500ms >= dashboardUpdateTime500) {
     sendTPMS();
-
+    
     lastDashboardUpdateTime500ms = millis();
   }
 }
@@ -128,8 +127,22 @@ void MQBDash::sendBacklightBrightness(uint8_t brightness) {
   CAN.sendMsgBuf(DIMMUNG_01_ID, 0, 8, dimmungBuf);
 }
 
-void MQBDash::sendSteeringWheelControls() {
-  CAN.sendMsgBuf(MFSW_ID, 0, 8, mfswBuf);
+void MQBDash::sendSteeringWheelControls(int button) {
+  switch (button) {
+    case 1: mfswBuf[0] = 0x01; mfswBuf[2] = 0x01; break; // Menu (does nothing)
+    case 2: mfswBuf[0] = 0x02; mfswBuf[2] = 0x01; break; // Right (does nothing)
+    case 3: mfswBuf[0] = 0x03; mfswBuf[2] = 0x01; break; // Left (does nothing)
+    case 4: mfswBuf[0] = 0x06; mfswBuf[2] = 0x01; break; // Up
+    case 5: mfswBuf[0] = 0x06; mfswBuf[2] = 0x0F; break; // Down
+    case 6: mfswBuf[0] = 0x07; mfswBuf[2] = 0x01; break; // OK
+    case 7: mfswBuf[0] = 0x21; mfswBuf[2] = 0x01; break; // Asterisk (does nothing)
+    case 8: mfswBuf[0] = 0x23; mfswBuf[2] = 0x01; break; // View (does nothing)
+  }
+  CAN.sendMsgBuf(MFSW_ID, 0, 4, mfswBuf);
+  delay(10);
+
+  mfswBuf[0] = 0x00; mfswBuf[2] = 0x00;
+  CAN.sendMsgBuf(MFSW_ID, 0, 4, mfswBuf);
 }
 
 void MQBDash::sendTSK07() {
@@ -297,7 +310,7 @@ void MQBDash::sendGear(uint8_t gear) {
 
   CAN.sendMsgBuf(WBA_03_ID, 0, 8, wba03Buf);
 
-  //CAN.sendMsgBuf(RKA_01_ID, 0, 8, rka01Buf); // TODO: Importnant for MFSW? Try it
+  CAN.sendMsgBuf(RKA_01_ID, 0, 8, rka01Buf); // TODO: Importnant for MFSW? Try it
 }
 
 void MQBDash::sendAirbag01() {

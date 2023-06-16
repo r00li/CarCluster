@@ -11,7 +11,6 @@ Ever wondered if you could use a car instrument cluster outside of your car? Wel
 Here is a little demo video of me playing forza Horizon 4 (using a PQ instrument cluster):
 [![](https://github.com/r00li/CarCluster/blob/main/Misc/video_thumb.png?raw=true)
 ](https://youtu.be/-aPPZKZ644M)
-
 And a demo video of the playing Beam NG (using MQB instrument cluster)
 [![](https://github.com/r00li/CarCluster/blob/main/Misc/video2_thumb.png?raw=true )](https://youtu.be/H56cSgZeaOw )
 
@@ -28,10 +27,14 @@ The hardware for this is pretty straightforward. You will need:
 ### Supported instrument clusters
 Currently fully tested and supported are the following instrument clusters:
 
-- VW Polo 6R (Also known as Polo mark 5, PQ-25)
-- VW T-Cross (MQB)
+- VW Polo 5 (Also known as Polo 6R, PQ25 platform)
+- Škoda Superb 2 (PQ46 platform)
+- VW T-Cross* (MQB platform)
+- VW Golf 7 (MQB platform)
 
-This project supports both the older VW PQ platform cars (like the Polo) and newer VW MQB platform cars. Generally compatibility between different MQB platform clusters should be higher, so that may be a safer bet. However not all functionality is currently supported on those. For both platforms some modifications might be needed based on the specific car model, so if you are unsure, get the specific clusters mentioned here.
+This project supports both the older VW PQ platform cars (like the Polo and Superb) and newer VW MQB platform cars. Your best bet is probably the Polo cluster since it has the most features tested and working. MQB clusters are still missing some functionality (mostly various indicators). For both platforms some modifications might be needed based on the specific car model, so if you are unsure, get the specific clusters mentioned here.
+
+***Newer MQB platform clusters like the T-Cross should be avoided**. After some (unknown) time they will enter into component protection mode which will flash the display and make most of the indicators useless. There is no known solution for this as of yet. I highly recommend you stick to older cars like Golf 7.
 
 You can get these clusters from ebay, your local scrapyard, or if you are in EU: [rrr.lt](rrr.lt/) . No matter where you get them, they should cost you around 50€.
 
@@ -61,6 +64,10 @@ Wire everything according to the tables below:
 | 18 | ESP pin D16 | Coolant shortage indicator |
 | 1 | Digital Pot FS1 | Fuel level indicator pin 1 |
 | 2 | Digital Pot FS2 | Fuel level indicator pin 2 |
+| 3 | Digital Pot FS3 | Fuel level indicator 2 pin 1 (some clusters) |
+| 4 | Digital Pot FS4 | Fuel level indicator 2 pin 2  (some clusters) |
+| 25 | ESP pin D13 | Handbrake indicator |
+| 26 | ESP pin D22 | Brake fluid warning (PQ46 only) |
 | 21 | Through a push button to ESP GND | Optional: Trip computer menu up |
 | 22 | Through a push button to ESP GND | Optional: Trip computer menu set/reset |
 | 23 | Through a push button to ESP GND | Optional: Trip computer menu down |
@@ -97,6 +104,8 @@ Connect the CAN bus interface to ESP32 according to this:
 Instrument clusters use analog resistance values in order to calculate fuel level. The best way to simulate that is through the use of an X9C102 digital potentiometer. Connect it according to the schematic below. You will need two 1k ohm resistors in addition to the digital potentiometer itself. 
 
 When connecting the digital pot you might find that if you increase the value in the dashboard, the value on the cluster goes down. If this is the case swap connections FS1 and FS2. 
+
+If your cluster needs two fuel level senders then duplicate the below schematic (two digital pots). Replace FS1 and FS2 connections with FS3 and FS4, connect the CS pin of the second digital pot to ESP pin D33. Keep other connections the same.
 
 ![Fuel level simulation](https://github.com/r00li/CarCluster/blob/main/Misc/fuel_simulation.png?raw=true)
 
@@ -173,10 +182,9 @@ You can now enjoy CarCluster with any game that is supported by Simhub.
 ### Known issues and limitations
 For the most part everything should work without issues. However there are a few small things still being worked on:
 
-- (PQ only) Speed needle sometimes drops for a second or two. This is fairly infrequent, but it does sometimes happen.
-- Fuel indicator doesn't work. Currently you can wire a 200 ohm potentiometer between pins 1 and 2 (middle pin of the pot should be connected to ESP GND) to set a fixed value. Working on a solution with a digital pot to fix this.
-- (PQ only) Traveled trip distance shown on the display is incorrect (this is connected to the speed needle issue, however not exactly sure how).
-- (MQB only) less important features like high-beam/low beam indicators, menu controls, ... do not work yet.
+- (PQ46 only) Multifunction menu doesn't work.
+- (PQ46 only) Some warnings will show on start and a steering wheel assist light will be lit up.
+- (MQB only) less important features like high-beam/low beam indicators, some menu controls, ... do not work yet.
 - (MQB only) some warning messages regarding assist systems will show up on the display upon first start
 
 ## Help and support
@@ -190,6 +198,7 @@ This project would not be possible without various people sharing their knowledg
 
 - [Leon Bataille](https://hackaday.io/Lebata30) for posting his initial Polo cluster work on Hackaday. The Polo instrument cluster sketch for this project is based on his work
 - [Ronaldo Cordeiro](https://github.com/ronaldocordeiro) for providing information (including sample code) for MQB cluster integration
+- [Ross-tech forum users](https://forums.ross-tech.com) for providing CAN scans of various cars used in this project
 
 ## License
 
