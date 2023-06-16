@@ -9,9 +9,12 @@
 Ever wondered if you could use a car instrument cluster outside of your car? Well... the answer to that question is yes. The aim of this project is to give you the ability to run a real instrument cluster from a real car on your desk. The main purpose of this is gaming, but the possibilities are endless. You might want to use it as a clock. Or maybe you want to show the amount of unread emails - possibilities are endless.
 
 Here is a little demo video of me playing forza Horizon 4 (using a PQ instrument cluster):
+
 [![](https://github.com/r00li/CarCluster/blob/main/Misc/video_thumb.png?raw=true)
 ](https://youtu.be/-aPPZKZ644M)
+
 And a demo video of the playing Beam NG (using MQB instrument cluster)
+
 [![](https://github.com/r00li/CarCluster/blob/main/Misc/video2_thumb.png?raw=true )](https://youtu.be/H56cSgZeaOw )
 
 ## What do I need?
@@ -198,7 +201,7 @@ This project would not be possible without various people sharing their knowledg
 
 - [Leon Bataille](https://hackaday.io/Lebata30) for posting his initial Polo cluster work on Hackaday. The Polo instrument cluster sketch for this project is based on his work
 - [Ronaldo Cordeiro](https://github.com/ronaldocordeiro) for providing information (including sample code) for MQB cluster integration
-- [Ross-tech forum users](https://forums.ross-tech.com) for providing CAN scans of various cars used in this project
+- [Ross-tech forum user jyoung8607](https://forums.ross-tech.com/index.php?members/208/) for providing CAN scans of various cars used in this project
 
 ## License
 
