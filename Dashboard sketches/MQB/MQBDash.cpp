@@ -20,7 +20,12 @@ void MQBDash::updateWithState(int speed,
                               boolean rightTurningIndicator,
                               boolean turningIndicatorsBlinking,
                               uint8_t gear,
-                              int coolantTemperature) {
+                              int coolantTemperature,
+                              boolean handbrake,
+                              boolean highBeam,
+                              boolean rearFogLight,
+                              boolean doorOpen,
+                              int outdoorTemperature) {
   if (millis() - lastDashboardUpdateTime >= dashboardUpdateTime50) {
     // This should probably be done using a more sophisticated method like a
     // scheduler, but for now this seems to work.
@@ -36,12 +41,11 @@ void MQBDash::updateWithState(int speed,
     sendGear(gear);
     sendAirbag01();
     sendBlinkers(leftTurningIndicator, rightTurningIndicator, turningIndicatorsBlinking);
+    sendParkBrake(handbrake);
     //sendSWA01();
 
     // Testing only. To be removed
-    //sendTestBuffers();
-
-    // CAN.sendMsgBuf(0x3D5, 0, 8, testBuff);
+    // sendTestBuffers();
 
     seq++;
     if (seq > 15) {
@@ -53,6 +57,9 @@ void MQBDash::updateWithState(int speed,
 
   if (millis() - lastDashboardUpdateTime500ms >= dashboardUpdateTime500) {
     sendTPMS();
+    sendLights(highBeam, rearFogLight);
+    sendDoorStatus(doorOpen);
+    sendOutdoorTemperature(outdoorTemperature);
     
     lastDashboardUpdateTime500ms = millis();
   }
@@ -383,6 +390,33 @@ void MQBDash::sendSWA01() {
   CAN.sendMsgBuf(SWA_01_ID, 0, 8, swa01Buff);
 }
 
+void MQBDash::sendParkBrake(boolean handbrakeActive) {
+  parkBrakeBuff[0] = handbrakeActive ? 0x04 : 0x00;
+  // To use the auto hold (green) indicator
+  //parkBrakeBuff[1] = handbrakeActive ? 0x01 : 0x00;
+  CAN.sendMsgBuf(PARKBRAKE_ID, 0, 4, parkBrakeBuff);
+}
+
+void MQBDash::sendLights(boolean highBeam, boolean rearFogLight) {
+  lichtVorne01Buff[1] = highBeam ? 0x40 : 0x00;
+  lichtVorne01Buff[2] = rearFogLight ? 0x03 : 0x04;
+  //lichtVorne01Buff[2] = 0x08; // To enable auto high beam assist indicator
+
+  CAN.sendMsgBuf(LICHT_VORNE_01_ID, 0, 8, lichtVorne01Buff);
+}
+
+void MQBDash::sendDoorStatus(boolean doorOpen) {
+  doorStatusBuff[3] = doorOpen; // bit 0: left front, bit 1: right front, bit 2: left rear, bit 3: right rear, bit 4: trunk
+
+  CAN.sendMsgBuf(DOOR_STATUS_ID, 0, 8, doorStatusBuff);
+}
+
+void MQBDash::sendOutdoorTemperature(int temperature) {
+  outdoorTempBuff[0] = (50 + temperature) << 1; // Bit shift 1 to the left since 0.5 is the first bit
+
+  CAN.sendMsgBuf(OUTDOOR_TEMP_ID, 0, 8, outdoorTempBuff);
+}
+
 void MQBDash::updateTestBuffer(uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3, uint8_t val4, uint8_t val5, uint8_t val6, uint8_t val7) {
   testBuff[0] = val0;
   testBuff[1] = val1;
@@ -399,6 +433,6 @@ void MQBDash::sendTestBuffers() {
   // TESTING ONLY. TO BE REMOVED
   //
 
-  testBuff[1] = seq;
-  CAN.sendMsgBuf(LWR_AFS_01, 0, 8, testBuff);
+  //testBuff[1] = seq;
+  CAN.sendMsgBuf(0x5e1, 0, 8, testBuff);
 }

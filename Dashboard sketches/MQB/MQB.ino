@@ -59,25 +59,16 @@ boolean turning_lights_blinking = true;  // Choose the mode of the turning light
 uint8_t gear = 0;                        // The gear that the car is in: 0 = clear, 1-9 = M1-M9, 10 = P, 11 = R, 12 = N, 13 = D
 int coolantTemperature = 90;             // Coolant temperature 50-130C
 int fuelQuantity = 100;                  // Amount of fuel
+boolean handbrake = false;               // Enables handbrake signal
+boolean rearFogLight = false;            // Enable rear Fog Light indicator
+boolean highBeam = false;                // Enable High Beam Light
+boolean doorOpen = false;                // Simulate open doors
+int outdoorTemperature = 20;             // Outdoor temperature (from -50 to 50)
 
 // TODO: Find the CAN IDs for some of these variables
 boolean signal_abs = false;              // Shows ABS Signal on dashboard
 boolean signal_offroad = false;          // Simulates Offroad drive mode
-boolean signal_handbrake = false;        // Enables handbrake signal
-boolean signal_lowtirepressure = false;  // Simulates low tire pressure
-boolean door_open = false;               // Simulate open doors
-boolean clutch_control = false;          // Displays the Message "Kupplung" (German for Clutch) on the dashboard's LCD
-boolean check_lamp = false;              // Show 'Check Lamp' Signal on dashboard. B00010000 = on, B00000 = off
-boolean trunklid_open = false;           // Simulate open trunk lid (Kofferraumklappe). B00100000 = open, B00000 = closed
 boolean battery_warning = false;         // Show Battery Warning.
-boolean keybattery_warning = false;      // Show message 'Key Battery Low' on Display. But just after first start of dashboard.
-boolean light_fog = false;               // Enable Fog Light indicator
-boolean light_highbeam = false;          // Enable High Beam Light
-boolean seat_belt = false;               // Switch Seat Betl warning light.
-boolean signal_dieselpreheat = false;    // Simualtes Diesel Preheating
-boolean signal_watertemp = false;        // Simualtes high water temperature
-boolean dpf_warning = false;             // Shows the Diesel particle filter warning signal.
-
 
 // Helper constants
 const unsigned int MAX_SERIAL_MESSAGE_LENGTH = 250;
@@ -108,7 +99,7 @@ Card speedCard(&dashboard, SLIDER_CARD, "Speed", "km/h", 0, 260);
 Card rpmCard(&dashboard, SLIDER_CARD, "RPM", "rpm", 0, 8000);
 Card fuelCard(&dashboard, SLIDER_CARD, "Fuel qunaity", "%", 0, 100);
 Card highBeamCard(&dashboard, BUTTON_CARD, "High beam");
-Card fogLampCard(&dashboard, BUTTON_CARD, "Fog lamp");
+Card fogLampCard(&dashboard, BUTTON_CARD, "Rear Fog lamp");
 Card leftTurningIndicatorCard(&dashboard, BUTTON_CARD, "Indicator left");
 Card rightTurningIndicatorCard(&dashboard, BUTTON_CARD, "Indicator right");
 Card indicatorsBlinkCard(&dashboard, BUTTON_CARD, "Indicators blink");
@@ -116,6 +107,8 @@ Card doorOpenCard(&dashboard, BUTTON_CARD, "Door open warning");
 Card gearCard(&dashboard, SLIDER_CARD, "Selected gear", "", 0, 13);
 Card backlightCard(&dashboard, SLIDER_CARD, "Backlight brightness", "%", 0, 99);
 Card coolantTemperatureCard(&dashboard, SLIDER_CARD, "Coolant temperature", "C", 50, 130);
+Card handbrakeCard(&dashboard, BUTTON_CARD, "Handbrake");
+Card outdoorTemperatureCard(&dashboard, SLIDER_CARD, "Outdoor temperature", "C", -30, 40);
 //Card buttonMenuCard(&dashboard, BUTTON_CARD, "Steering button menu");
 //Card buttonLeftCard(&dashboard, BUTTON_CARD, "Steering button left");
 //Card buttonRightCard(&dashboard, BUTTON_CARD, "Steering button right");
@@ -162,7 +155,7 @@ void setup() {
   WiFi.mode(WIFI_STA);
   WiFiManager wm;
   wm.setConfigPortalTimeout(180);
-  bool res = wm.autoConnect("CarCluster", "cluster");
+  bool res = wm.autoConnect("CarCluster", "carcluster");
   if(!res) {
       Serial.println("Wifi Failed to connect");
   } else {
@@ -211,13 +204,13 @@ void setupWebPage() {
   });
 
   highBeamCard.attachCallback([&](int value) {
-    light_highbeam = (bool)value;
+    highBeam = (bool)value;
     highBeamCard.update(value);
     dashboard.sendUpdates();
   });
 
   fogLampCard.attachCallback([&](int value) {
-    light_fog = (bool)value;
+    rearFogLight = (bool)value;
     fogLampCard.update(value);
     dashboard.sendUpdates();
   });
@@ -241,7 +234,7 @@ void setupWebPage() {
   });
 
   doorOpenCard.attachCallback([&](int value) {
-    door_open = (bool)value;
+    doorOpen = (bool)value;
     doorOpenCard.update(value);
     dashboard.sendUpdates();
   });
@@ -263,8 +256,39 @@ void setupWebPage() {
     coolantTemperatureCard.update(value);
     dashboard.sendUpdates();
   });
+
+  handbrakeCard.attachCallback([&](int value) {
+    handbrake = (bool)value;
+    handbrakeCard.update(value);
+    dashboard.sendUpdates();
+  });
+
+  outdoorTemperatureCard.attachCallback([&](int value) {
+    outdoorTemperature = value;
+    outdoorTemperatureCard.update(value);
+    dashboard.sendUpdates();
+  });
+
+  buttonUpCard.attachCallback([&](int value) {
+    mqbDash.sendSteeringWheelControls(4);
+    buttonUpCard.update(value);
+    dashboard.sendUpdates();
+  });
+
+  buttonDownCard.attachCallback([&](int value) {
+    mqbDash.sendSteeringWheelControls(5);
+    buttonDownCard.update(value);
+    dashboard.sendUpdates();
+  });
+
+  buttonOkCard.attachCallback([&](int value) {
+    mqbDash.sendSteeringWheelControls(6);
+    buttonOkCard.update(value);
+    dashboard.sendUpdates();
+  });
+
 /*
-    val0Card.attachCallback([&](int value) {
+  val0Card.attachCallback([&](int value) {
     val0 = value;
     val0Card.update(value);
     dashboard.sendUpdates();
@@ -276,37 +300,37 @@ void setupWebPage() {
     dashboard.sendUpdates();
   });
 
-    val2Card.attachCallback([&](int value) {
+  val2Card.attachCallback([&](int value) {
     val2 = value;
     val2Card.update(value);
     dashboard.sendUpdates();
   });
 
-    val3Card.attachCallback([&](int value) {
+  val3Card.attachCallback([&](int value) {
     val3 = value;
     val3Card.update(value);
     dashboard.sendUpdates();
   });
 
-    val4Card.attachCallback([&](int value) {
+  val4Card.attachCallback([&](int value) {
     val4 = value;
     val4Card.update(value);
     dashboard.sendUpdates();
   });
 
-    val5Card.attachCallback([&](int value) {
+  val5Card.attachCallback([&](int value) {
     val5 = value;
     val5Card.update(value);
     dashboard.sendUpdates();
   });
 
-    val6Card.attachCallback([&](int value) {
+  val6Card.attachCallback([&](int value) {
     val6 = value;
     val6Card.update(value);
     dashboard.sendUpdates();
   });
 
-    val7Card.attachCallback([&](int value) {
+  val7Card.attachCallback([&](int value) {
     val7 = value;
     val7Card.update(value);
     dashboard.sendUpdates();
@@ -329,25 +353,7 @@ void setupWebPage() {
     buttonRightCard.update(value);
     dashboard.sendUpdates();
   });
-*/
-  buttonUpCard.attachCallback([&](int value) {
-    mqbDash.sendSteeringWheelControls(4);
-    buttonUpCard.update(value);
-    dashboard.sendUpdates();
-  });
 
-  buttonDownCard.attachCallback([&](int value) {
-    mqbDash.sendSteeringWheelControls(5);
-    buttonDownCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  buttonOkCard.attachCallback([&](int value) {
-    mqbDash.sendSteeringWheelControls(6);
-    buttonOkCard.update(value);
-    dashboard.sendUpdates();
-  });
-/*
   buttonAsteriskCard.attachCallback([&](int value) {
     mqbDash.sendSteeringWheelControls(7);
     buttonAsteriskCard.update(value);
@@ -360,6 +366,7 @@ void setupWebPage() {
     dashboard.sendUpdates();
   });
 */
+
   server.begin();
 
   updateWebDashboard();
@@ -379,7 +386,7 @@ void setFuel(int percentage) {
 
 void loop() {
   // Update the dashboard
-  mqbDash.updateWithState(speed*speedCorrectionFactor, rpm*rpmCorrectionFactor, backlight_brightness, leftTurningIndicator, rightTurningIndicator, turning_lights_blinking, gear, coolantTemperature);
+  mqbDash.updateWithState(speed*speedCorrectionFactor, rpm*rpmCorrectionFactor, backlight_brightness, leftTurningIndicator, rightTurningIndicator, turning_lights_blinking, gear, coolantTemperature, handbrake, highBeam, rearFogLight, doorOpen, outdoorTemperature);
 
   setFuel(fuelQuantity);
 
@@ -402,15 +409,17 @@ void updateWebDashboard() {
     speedCard.update(speed);
     rpmCard.update(rpm);
     fuelCard.update(fuelQuantity);
-    highBeamCard.update(light_highbeam);
-    fogLampCard.update(light_fog);
+    highBeamCard.update(highBeam);
+    fogLampCard.update(rearFogLight);
     leftTurningIndicatorCard.update(leftTurningIndicator);
     rightTurningIndicatorCard.update(rightTurningIndicator);
     indicatorsBlinkCard.update(turning_lights_blinking);
-    doorOpenCard.update(door_open);
+    doorOpenCard.update(doorOpen);
     gearCard.update(gear);
     backlightCard.update(backlight_brightness);
     coolantTemperatureCard.update(coolantTemperature);
+    handbrakeCard.update(handbrake);
+    outdoorTemperatureCard.update(outdoorTemperature);
     dashboard.sendUpdates();
 
     lastWebDashboardUpdateTime = millis();
@@ -533,9 +542,9 @@ void listenForzaUDP(int port) {
         float max_rpm = *((float*)rpmBuff);
 
         if (max_rpm == 0) {
-          door_open = true;  // We are in a menu
+          doorOpen = true;  // We are in a menu
         } else {
-          door_open = false;
+          doorOpen = false;
         }
 
         if (max_rpm > maximumRPMValue) {
@@ -543,14 +552,14 @@ void listenForzaUDP(int port) {
         }
 
         // SPEED
-        mempcpy(rpmBuff, (packet.data() + 256), 4);
+        memcpy(rpmBuff, (packet.data() + 256), 4);
         int someSpeed = *((float*)rpmBuff);
         someSpeed = someSpeed * 3.6;
         if (someSpeed > maximumSpeedValue) { someSpeed = maximumSpeedValue; }
         speed = someSpeed;
 
         // GEAR
-        mempcpy(rpmBuff, (packet.data() + 319), 1);
+        memcpy(rpmBuff, (packet.data() + 319), 1);
         int forzaGear = (int)(rpmBuff[0]);
         if (forzaGear == 0) {
           gear = 11;
@@ -563,9 +572,9 @@ void listenForzaUDP(int port) {
 
         // HANDBRAKE
         // For some reason keeping handbrake signal on causes weird issues with the cluster, keep it on for just a flash
-        mempcpy(rpmBuff, (packet.data() + 318), 1);
+        memcpy(rpmBuff, (packet.data() + 318), 1);
         int handbrake = (int)(rpmBuff[0]);
-        signal_handbrake = handbrake > 0 ? true : false;
+        handbrake = handbrake > 0 ? true : false;
       }
     });
   }
@@ -584,7 +593,7 @@ void listenBeamNGUDP(int port) {
         char rpmBuff[4];  // four bytes
 
         // GEAR
-        mempcpy(rpmBuff, (packet.data() + 10), 1);
+        memcpy(rpmBuff, (packet.data() + 10), 1);
         int beamGear = (int)(0xFF & rpmBuff[0]);
         if (beamGear == 0) {
           gear = 11;
@@ -597,7 +606,7 @@ void listenBeamNGUDP(int port) {
         }
 
         // SPEED
-        mempcpy(rpmBuff, (packet.data() + 12), 4);
+        memcpy(rpmBuff, (packet.data() + 12), 4);
         int someSpeed = *((float*)rpmBuff);
         someSpeed = someSpeed * 3.6;               // Speed is in m/s
         if (someSpeed > maximumSpeedValue) { someSpeed = maximumSpeedValue; }  // Cap the speed
@@ -615,16 +624,16 @@ void listenBeamNGUDP(int port) {
         if (coolantTemperature > 130) { coolantTemperature = 130; }
 
         // LIGHTS
-        mempcpy(rpmBuff, (packet.data() + 44), 4);
+        memcpy(rpmBuff, (packet.data() + 44), 4);
         int lights = *((int*)rpmBuff);
 
         turning_lights_blinking = false;  // Beam blinks the indicators itself
         rightTurningIndicator = ((lights & 0x0040) != 0);
         leftTurningIndicator = ((lights & 0x0020) != 0);
-        light_highbeam = ((lights & 0x0002) != 0);
+        highBeam = ((lights & 0x0002) != 0);
         battery_warning = ((lights & 0x0200) != 0);
         signal_abs = ((lights & 0x0400) != 0);
-        signal_handbrake = ((lights & 0x0004) != 0);
+        handbrake = ((lights & 0x0004) != 0);
         signal_offroad = ((lights & 0x0010) != 0);
       }
     });
@@ -659,9 +668,9 @@ void decodeSimhub() {
   leftTurningIndicator = doc["lft"];
   rightTurningIndicator = doc["rit"];
   coolantTemperature = doc["oit"];
-  door_open = (doc["pau"] != 0 || doc["run"] == 0);
+  doorOpen = (doc["pau"] != 0 || doc["run"] == 0);
   fuelQuantity = doc["fue"];
-  signal_handbrake = doc["hnb"];
+  handbrake = doc["hnb"];
   signal_abs = doc["abs"];
   signal_offroad = doc["tra"];
 }

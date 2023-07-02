@@ -127,7 +127,7 @@ Finally you will need to install a few libraries:
  - [X9C10X](https://github.com/RobTillaart/X9C10X) - install through library manager - tested using 0.2.2
  - [WifiManager](https://github.com/tzapu/WiFiManager) - install through library manager - tested using 2.0.16-rc.2
 
-Now that you have done that you can compile and install the sketch to your ESP32. Upon starting the ESP will create a wifi network access point called `CarCluster`. Connect to it using your phone/laptop using the password `cluster`. After you have done that you can open a web browser (if a popup one doesn't open automatically upon connection) and navigate to `192.168.4.1`. This will bring up WifiManager where you can see the networks around you and connect to the one you want. After you do that your ESP will automatically connect to the network you select unless an error occurs in which case the access point will be created again. If you do not configure the wifi network in 3 minutes the ESP will boot in serial only mode that you can use with Simhub. 
+Now that you have done that you can compile and install the sketch to your ESP32. Upon starting the ESP will create a wifi network access point called `CarCluster`. Connect to it using your phone/laptop using the password `carcluster`. After you have done that you can open a web browser (if a popup one doesn't open automatically upon connection) and navigate to `192.168.4.1`. This will bring up WifiManager where you can see the networks around you and connect to the one you want. After you do that your ESP will automatically connect to the network you select unless an error occurs in which case the access point will be created again. If you do not configure the wifi network in 3 minutes the ESP will boot in serial only mode that you can use with Simhub. 
 
 *Note that you might have some trouble uploading the code to the arduino while the CAN interface is connected. If you do, disconnect the CAN interface and try uploading again.*  
 
@@ -187,8 +187,8 @@ For the most part everything should work without issues. However there are a few
 
 - (PQ46 only) Multifunction menu doesn't work.
 - (PQ46 only) Some warnings will show on start and a steering wheel assist light will be lit up.
-- (MQB only) less important features like high-beam/low beam indicators, some menu controls, ... do not work yet.
-- (MQB only) some warning messages regarding assist systems will show up on the display upon first start
+- (MQB only) less important features like ABS/ESP indicators, some menu controls, ... do not work yet.
+- (MQB only) some warning messages regarding assist systems will show up on the display upon first start. Depends on your particular cluster
 
 ## Help and support
 

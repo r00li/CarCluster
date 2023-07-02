@@ -162,7 +162,7 @@ void setup() {
   WiFi.mode(WIFI_STA);
   WiFiManager wm;
   wm.setConfigPortalTimeout(180);
-  bool res = wm.autoConnect("CarCluster", "cluster");
+  bool res = wm.autoConnect("CarCluster", "carcluster");
   if(!res) {
       Serial.println("Wifi Failed to connect");
   } else {
@@ -518,14 +518,14 @@ void listenForzaUDP(int port) {
         }
 
         // SPEED
-        mempcpy(rpmBuff, (packet.data() + 256), 4);
+        memcpy(rpmBuff, (packet.data() + 256), 4);
         int someSpeed = *((float*)rpmBuff);
         someSpeed = someSpeed * 3.6;
         if (someSpeed > maximumSpeedValue) { someSpeed = maximumSpeedValue; }
         speed = someSpeed;
 
         // GEAR
-        mempcpy(rpmBuff, (packet.data() + 319), 1);
+        memcpy(rpmBuff, (packet.data() + 319), 1);
         int forzaGear = (int)(rpmBuff[0]);
         if (forzaGear == 0) {
           gear = 8;
@@ -538,7 +538,7 @@ void listenForzaUDP(int port) {
 
         // HANDBRAKE
         // For some reason keeping handbrake signal on causes weird issues with the cluster, keep it on for just a flash
-        mempcpy(rpmBuff, (packet.data() + 318), 1);
+        memcpy(rpmBuff, (packet.data() + 318), 1);
         int handbrake = (int)(rpmBuff[0]);
         signal_handbrake = handbrake > 0 ? true : false;
       }
@@ -559,7 +559,7 @@ void listenBeamNGUDP(int port) {
         char rpmBuff[4];  // four bytes
 
         // GEAR
-        mempcpy(rpmBuff, (packet.data() + 10), 1);
+        memcpy(rpmBuff, (packet.data() + 10), 1);
         int beamGear = (int)(0xFF & rpmBuff[0]);
         if (beamGear == 0) {
           gear = 8;
@@ -572,7 +572,7 @@ void listenBeamNGUDP(int port) {
         }
 
         // SPEED
-        mempcpy(rpmBuff, (packet.data() + 12), 4);
+        memcpy(rpmBuff, (packet.data() + 12), 4);
         int someSpeed = *((float*)rpmBuff);
         someSpeed = someSpeed * 3.6;               // Speed is in m/s
         if (someSpeed > maximumSpeedValue) { someSpeed = maximumSpeedValue; }  // Cap the speed
@@ -590,7 +590,7 @@ void listenBeamNGUDP(int port) {
         if (coolantTemperature > 130) { coolantTemperature = 130; }
 
         // LIGHTS
-        mempcpy(rpmBuff, (packet.data() + 44), 4);
+        memcpy(rpmBuff, (packet.data() + 44), 4);
         int lights = *((int*)rpmBuff);
 
         turning_lights_blinking = false;  // Beam blinks the indicators itself

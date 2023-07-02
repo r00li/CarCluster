@@ -37,7 +37,12 @@
 #define MFSW_ID 0x5BF // MultiFunction Steering Wheel
 #define TPMS_ID 0x64A  // TPMS. ID 0x5f9 is also somehow connected to TPMS (playing with values there can show TPMS display)
 #define SWA_01_ID 0x30F // Lane Change assist (SpurWechselAssistent)?
+#define PARKBRAKE_ID 0x30d // Electronic parking brake
 #define LWR_AFS_01 0x395 // Something to do with lights?
+#define ESP_05_ID 0x106
+#define LICHT_VORNE_01_ID 0x658 // Lights
+#define DOOR_STATUS_ID 0x583 // Door status
+#define OUTDOOR_TEMP_ID 0x5e1 // Outdoor temperature
 
 class MQBDash {
   public:
@@ -49,7 +54,12 @@ class MQBDash {
                          boolean rightTurningIndicator,
                          boolean turningIndicatorsBlinking,
                          uint8_t gear,
-                         int coolantTemperature);
+                         int coolantTemperature,
+                         boolean handbrake,
+                         boolean highBeam,
+                         boolean rearFogLight,
+                         boolean doorOpen,
+                         int outdoorTemperature);
     void updateTestBuffer(uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3, uint8_t val4, uint8_t val5, uint8_t val6, uint8_t val7);
     void sendSteeringWheelControls(int button);
 
@@ -92,6 +102,10 @@ class MQBDash {
                   blinkerBuff[8] = { 0x00, 0x00, 0x04, 0x14, 0x0A, 0xFC, 0x00, 0x00 },
                   tpmsBuff[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
                   swa01Buff[8] = { 0x50, 0x05, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00 },
+                  parkBrakeBuff[4] = { 0x0, 0x00, 0x0, 0x0 },
+                  lichtVorne01Buff[8] = { 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 },
+                  doorStatusBuff[8] = { 0x00, 0x10, 0x05, 0x00, 0x00, 0x44, 0x55, 0x00 },
+                  outdoorTempBuff[8] = { 0x9A, 0x2A, 0x00, 0x60, 0xFE, 0x00, 0x00, 0x00 },
                   testBuff[8] = { 0x04, 0x06, 0x40, 0x00, 0xFF, 0xFE, 0x69, 0x2C };
 
     void sendIgnitionStatus();
@@ -107,6 +121,10 @@ class MQBDash {
     void sendBlinkers(boolean leftTurningIndicator, boolean rightTurningIndicator, boolean turningIndicatorsBlinking);
     void sendTPMS();
     void sendSWA01();
+    void sendParkBrake(boolean handbrakeActive);
+    void sendLights(boolean highBeam, boolean rearFogLight);
+    void sendDoorStatus(boolean doorOpen);
+    void sendOutdoorTemperature(int temperature);
     void sendTestBuffers();
 };
 
