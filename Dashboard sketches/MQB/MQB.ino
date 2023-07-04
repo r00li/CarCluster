@@ -64,6 +64,7 @@ boolean rearFogLight = false;            // Enable rear Fog Light indicator
 boolean highBeam = false;                // Enable High Beam Light
 boolean doorOpen = false;                // Simulate open doors
 int outdoorTemperature = 20;             // Outdoor temperature (from -50 to 50)
+boolean ignition = true;                 // Ignition status (set to false for accessory)
 
 // TODO: Find the CAN IDs for some of these variables
 boolean signal_abs = false;              // Shows ABS Signal on dashboard
@@ -115,6 +116,7 @@ Card outdoorTemperatureCard(&dashboard, SLIDER_CARD, "Outdoor temperature", "C",
 Card buttonUpCard(&dashboard, BUTTON_CARD, "Steering button up");
 Card buttonDownCard(&dashboard, BUTTON_CARD, "Steering button down");
 Card buttonOkCard(&dashboard, BUTTON_CARD, "Steering button OK");
+Card ignitionCard(&dashboard, BUTTON_CARD, "Ignition");
 //Card buttonAsteriskCard(&dashboard, BUTTON_CARD, "Steering button asterisk");
 //Card buttonViewCard(&dashboard, BUTTON_CARD, "Steering button view");
 
@@ -287,6 +289,12 @@ void setupWebPage() {
     dashboard.sendUpdates();
   });
 
+  ignitionCard.attachCallback([&](int value) {
+    ignition = (bool)value;
+    ignitionCard.update(value);
+    dashboard.sendUpdates();
+  });
+
 /*
   val0Card.attachCallback([&](int value) {
     val0 = value;
@@ -386,7 +394,7 @@ void setFuel(int percentage) {
 
 void loop() {
   // Update the dashboard
-  mqbDash.updateWithState(speed*speedCorrectionFactor, rpm*rpmCorrectionFactor, backlight_brightness, leftTurningIndicator, rightTurningIndicator, turning_lights_blinking, gear, coolantTemperature, handbrake, highBeam, rearFogLight, doorOpen, outdoorTemperature);
+  mqbDash.updateWithState(speed*speedCorrectionFactor, rpm*rpmCorrectionFactor, backlight_brightness, leftTurningIndicator, rightTurningIndicator, turning_lights_blinking, gear, coolantTemperature, handbrake, highBeam, rearFogLight, doorOpen, outdoorTemperature, ignition);
 
   setFuel(fuelQuantity);
 
@@ -420,6 +428,7 @@ void updateWebDashboard() {
     coolantTemperatureCard.update(coolantTemperature);
     handbrakeCard.update(handbrake);
     outdoorTemperatureCard.update(outdoorTemperature);
+    ignitionCard.update(ignition);
     dashboard.sendUpdates();
 
     lastWebDashboardUpdateTime = millis();
@@ -479,6 +488,8 @@ void readSerialJson() {
         // Used to decode custom protocol from Simhub in the following format:
         // {"action":10, "spe":54, "gea":"2", "rpm":3590, "mrp":7999, "lft":0, "rit":0, "oit":0, "pau":0, "run":0, "fue":0, "hnb":0, "abs":0, "tra":0}
         decodeSimhub();
+      } else if (action == 11) {
+        mqbDash.sendTestBuffers();
       }
 
       //Reset for the next message
@@ -649,7 +660,6 @@ void decodeSimhub() {
 
   const char* simGear = doc["gea"];
   switch(simGear[0]) {
-    case 'P': gear = 0; break;
     case '1': gear = 1; break;
     case '2': gear = 2; break;
     case '3': gear = 3; break;
@@ -657,9 +667,12 @@ void decodeSimhub() {
     case '5': gear = 5; break;
     case '6': gear = 6; break;
     case '7': gear = 7; break;
-    case 'R': gear = 8; break;
-    case 'N': gear = 9; break;
-    case 'D': gear = 10; break;
+    case '8': gear = 8; break;
+    case '9': gear = 9; break;
+    case 'P': gear = 10; break;
+    case 'R': gear = 11; break;
+    case 'N': gear = 12; break;
+    case 'D': gear = 13; break;
   }
 
   speed = doc["spe"];

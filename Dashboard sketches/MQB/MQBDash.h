@@ -43,6 +43,8 @@
 #define LICHT_VORNE_01_ID 0x658 // Lights
 #define DOOR_STATUS_ID 0x583 // Door status
 #define OUTDOOR_TEMP_ID 0x5e1 // Outdoor temperature
+#define DATE_ID 0x17331110
+// WARNING: NEVER TOUCH ADDRESS 0x6B4 !!!!! This is part of component protection/VIN
 
 class MQBDash {
   public:
@@ -59,9 +61,11 @@ class MQBDash {
                          boolean highBeam,
                          boolean rearFogLight,
                          boolean doorOpen,
-                         int outdoorTemperature);
+                         int outdoorTemperature,
+                         boolean ignition);
     void updateTestBuffer(uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3, uint8_t val4, uint8_t val5, uint8_t val6, uint8_t val7);
     void sendSteeringWheelControls(int button);
+    void sendTestBuffers();
 
   private:
     MCP_CAN &CAN;
@@ -97,7 +101,7 @@ class MQBDash {
                   motor14Buf[8] = { 0x00, 0x30, 0xE7, 0x51, 0x88, 0xC0, 0x0C, 0x00 },
                   motor18Buf[8] = { 0x00, 0x00, 0x00, 0x00, 0xFE, 0x00, 0x00, 0x80 },
                   motor26Buf[8] = { 0xFD, 0x10, 0x28, 0x00, 0x00, 0x40, 0x80, 0x00 },
-                  mfswBuf[8] = { 0x00, 0x00, 0x00, 0x23, 0x00, 0x00, 0x00, 0x00 },
+                  mfswBuf[4] = { 0x00, 0x00, 0x00, 0x40 },
                   motorCode01Buf[8] = { 0x00, 0x00, 0x00, 0xE8, 0x03, 0x00, 0x00, 0x00 },
                   blinkerBuff[8] = { 0x00, 0x00, 0x04, 0x14, 0x0A, 0xFC, 0x00, 0x00 },
                   tpmsBuff[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
@@ -108,7 +112,7 @@ class MQBDash {
                   outdoorTempBuff[8] = { 0x9A, 0x2A, 0x00, 0x60, 0xFE, 0x00, 0x00, 0x00 },
                   testBuff[8] = { 0x04, 0x06, 0x40, 0x00, 0xFF, 0xFE, 0x69, 0x2C };
 
-    void sendIgnitionStatus();
+    void sendIgnitionStatus(boolean ignition);
     void sendBacklightBrightness(uint8_t brightness);
     void sendESP20();
     void sendESP21(int speed);
@@ -125,7 +129,6 @@ class MQBDash {
     void sendLights(boolean highBeam, boolean rearFogLight);
     void sendDoorStatus(boolean doorOpen);
     void sendOutdoorTemperature(int temperature);
-    void sendTestBuffers();
 };
 
 #endif

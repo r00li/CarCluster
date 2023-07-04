@@ -25,12 +25,13 @@ void MQBDash::updateWithState(int speed,
                               boolean highBeam,
                               boolean rearFogLight,
                               boolean doorOpen,
-                              int outdoorTemperature) {
+                              int outdoorTemperature,
+                              boolean ignition) {
   if (millis() - lastDashboardUpdateTime >= dashboardUpdateTime50) {
     // This should probably be done using a more sophisticated method like a
     // scheduler, but for now this seems to work.
 
-    sendIgnitionStatus();
+    sendIgnitionStatus(ignition);
     sendBacklightBrightness(backlightBrightness);
     sendESP20();
     sendESP21(speed);
@@ -65,8 +66,8 @@ void MQBDash::updateWithState(int speed,
   }
 }
 
-void MQBDash::sendIgnitionStatus() {
-  kStatusBuf[2] = 0x03;
+void MQBDash::sendIgnitionStatus(boolean ignition) {
+  kStatusBuf[2] = ignition? 0x03 : 0x01;
 
   crc = seq ^ 0xFF;
   for (i = 2; i <= 3; i++) {
@@ -432,7 +433,55 @@ void MQBDash::sendTestBuffers() {
   //
   // TESTING ONLY. TO BE REMOVED
   //
+/*
+  // Example 1: 17331110,44 50 10 07 01 // Date?
+  // Example 2: 17331110,44 51 17 0C 1B // Time?
 
-  //testBuff[1] = seq;
-  CAN.sendMsgBuf(0x5e1, 0, 8, testBuff);
+  testBuff[0] = 0xB0;
+  testBuff[1] = 0x07;
+  testBuff[2] = 0x34;
+  testBuff[3] = 0x5E;
+  testBuff[4] = 0x00;
+  testBuff[5] = 0x01;
+  testBuff[6] = 0x01;
+  testBuff[7] = 0x00;
+  CAN.sendMsgBuf(DATE_ID, 0, 8, testBuff);
+
+  delay(10);
+
+  testBuff[0] = 0x44;
+  testBuff[1] = 0x51;
+  testBuff[2] = 0x17;
+  testBuff[3] = 0x0C;
+  testBuff[4] = 0x1B;
+  CAN.sendMsgBuf(DATE_ID, 0, 5, testBuff);
+
+  delay(10);
+
+  testBuff[0] = 0xF0;
+  testBuff[1] = 0x00;
+  testBuff[2] = 0x00;
+  testBuff[3] = 0x00;
+  testBuff[4] = 0x00;
+  testBuff[5] = 0x00;
+  testBuff[6] = 0x00;
+  testBuff[7] = 0x00;
+  CAN.sendMsgBuf(DATE_ID, 0, 8, testBuff);
+
+  testBuff[0] = 0x44;
+  testBuff[1] = 0x50;
+  testBuff[2] = 0x17;
+  testBuff[3] = 0x07;
+  testBuff[4] = 0x01;
+  CAN.sendMsgBuf(DATE_ID, 0, 5, testBuff);
+
+  testBuff[0] = 0xC2;
+  testBuff[1] = 0x00;
+  testBuff[2] = 0x17;
+  testBuff[3] = 0x07;
+  testBuff[4] = 0x04;
+  testBuff[5] = 0x13;
+  testBuff[6] = 0x09;
+  testBuff[7] = 0x00;
+  CAN.sendMsgBuf(DATE_ID, 0, 8, testBuff);*/
 }
