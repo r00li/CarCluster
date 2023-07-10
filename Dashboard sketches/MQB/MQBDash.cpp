@@ -59,6 +59,7 @@ void MQBDash::updateWithState(int speed,
   if (millis() - lastDashboardUpdateTime500ms >= dashboardUpdateTime500) {
     sendTPMS();
     sendLights(highBeam, rearFogLight);
+    sendOtherLights();
     sendDoorStatus(doorOpen);
     sendOutdoorTemperature(outdoorTemperature);
     
@@ -404,6 +405,24 @@ void MQBDash::sendLights(boolean highBeam, boolean rearFogLight) {
   //lichtVorne01Buff[2] = 0x08; // To enable auto high beam assist indicator
 
   CAN.sendMsgBuf(LICHT_VORNE_01_ID, 0, 8, lichtVorne01Buff);
+}
+
+void MQBDash::sendOtherLights() {
+  crc = (0xC0 | seq) ^ 0xFF;
+  for (i = 2; i <= 7; i++) {
+    crc = P_L_CC_CRC_LUT_APV[crc];
+    crc = lichtAnfBuff[i] ^ crc;
+  }
+  crc = P_L_CC_CRC_LUT_APV[crc] ^ P_L_CC_KENNUNG_APV_LICHT_ANF[seq];
+  crc = P_L_CC_CRC_LUT_APV[crc];
+  crc = (~crc);
+
+  lichtAnfBuff[0] = crc;
+  lichtAnfBuff[1] = 0xC0 | seq;
+  CAN.sendMsgBuf(LICHT_ANF_ID, 0, 8, lichtAnfBuff);
+
+  lichtHintenBuff[0] = seq;
+  CAN.sendMsgBuf(LICHT_HINTEN_01_ID, 0, 8, lichtHintenBuff);
 }
 
 void MQBDash::sendDoorStatus(boolean doorOpen) {
