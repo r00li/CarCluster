@@ -230,43 +230,57 @@ void MQBDash::sendMotor(int rpm, int coolantTemperature) {
 }
 
 void MQBDash::sendESP24() {
-  //
-  // Esp_24
-  //
+  // Convert vSpeed to mph for calculating distance
+  // this doesn't get sent to the cluster
+  double speed_mph = static_cast<double>(vSpeed) / 100.0 * 0.621371; 
 
-  esp24Speed = (unsigned long)vSpeed * 1.35;
-  esp24Inc = (unsigned long)esp24Speed / 240;
-  esp24Buf[2] = esp24Speed % 256;
-  esp24Buf[3] = esp24Speed / 256;
-  esp24Distance = esp24Distance + esp24Inc;
-  if (esp24Speed == 0) { 
-    esp24Distance = 0; 
+  // Calculate distance increment for 50ms interval in miles
+  // ESP24 is sent every 50ms
+  double time_interval_hours = 0.05 / 3600.0; // Convert 50ms to hours
+  double distance_increment_miles = speed_mph * time_interval_hours;
+
+  // Convert distance increment to the cluster unit
+  // (Approx) 7195 units represents 0.1 miles
+  double distance_increment_units = distance_increment_miles * (7195.0 / 0.1);
+
+  static double accumulated_distance_units = 0;
+  accumulated_distance_units += distance_increment_units;
+
+  // Prepare the distance value for CAN
+  uint16_t distance_for_cluster = static_cast<uint16_t>(accumulated_distance_units); 
+  esp24Buf[5] = distance_for_cluster & 0xFF; 
+  esp24Buf[6] = (distance_for_cluster >> 8) & 0xFF; 
+
+  // Stop the odometer from counting indefinitely
+  if (vSpeed == 0) {
+    accumulated_distance_units = 0;
   }
-  if (esp24Distance > 0x7ff) {
-    esp24Overflow = 0x10;
-    esp24Distance = esp24Distance % 0x800;
+
+  // If you leave this uncapped, the TCS-off light will come on
+  if (accumulated_distance_units >= 30000) {
+    accumulated_distance_units = 0; 
   }
 
-  esp24Buf[5] = esp24Distance % 256;
-  esp24Buf[6] = esp24Overflow | (esp24Distance / 256);
+  // Calculate and update esp24Speed
+  unsigned long esp24Speed = vSpeed * 1.35; 
+  esp24Buf[2] = esp24Speed % 256; 
+  esp24Buf[3] = esp24Speed / 256; 
 
-  crc = seq ^ 0xFF;
-  for (i = 2; i <= 7; i++) {
+  uint8_t crc = seq ^ 0xFF;
+  for (int i = 2; i <= 7; i++) {
     crc = P_L_CC_CRC_LUT_APV[crc];
     crc = esp24Buf[i] ^ crc;
   }
   crc = P_L_CC_CRC_LUT_APV[crc] ^ P_L_CC_KENNUNG_APV_ESP24[seq];
   crc = P_L_CC_CRC_LUT_APV[crc];
-  crc = (~crc);
+  crc = (~crc) & 0xFF;
 
   esp24Buf[0] = crc;
   esp24Buf[1] = seq;
 
-  // TODO: Check if can be removed
-  // while(millis()<prevTime+45);
-  // prevTime=millis();
   CAN.sendMsgBuf(ESP_24_ID, 0, 8, esp24Buf);
 }
+
 
 void MQBDash::sendGear(uint8_t gear) {
   //
