@@ -34,6 +34,8 @@ Currently fully tested and supported are the following instrument clusters:
 - Škoda Superb 2 (PQ46 platform)
 - VW T-Cross* (MQB platform)
 - VW Golf 7 (MQB platform)
+- BMW 5 Series (F10, BMW F platform)
+- Mini Cooper (third generation, F55/F56/F57, BMW F platform)
 
 This project supports both the older VW PQ platform cars (like the Polo and Superb) and newer VW MQB platform cars. Your best bet is probably the Polo cluster since it has the most features tested and working. MQB clusters are still missing some functionality (mostly various indicators). For both platforms some modifications might be needed based on the specific car model, so if you are unsure, get the specific clusters mentioned here.
 
@@ -49,7 +51,7 @@ If you want to use the instrument cluster for gaming then currently supported ar
 - Simhub (not a game but a tool to interface with other games)
   
 ## Set it up
-### Wiring for PQ platform cluster
+### Wiring for VW PQ platform cluster
 Below is the connector pinout for the Polo 6R dashboard:
 ![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout.jpg?raw=true)You can also see my improvised connector. Just two rows of standard 2.54mm female pin headers glued together. If you can I would suggest you get a cluster that comes with it's original connector.
 
@@ -76,7 +78,7 @@ Wire everything according to the tables below:
 | 23 | Through a push button to ESP GND | Optional: Trip computer menu down |
 | 19 | Through a NTC (10k?) | Optional: outside temperature sensor |
 
-### Wiring for MQB platform cluster
+### Wiring for VW MQB platform cluster
 Below is the connector pinout for the VW T-Cross dashboard:
 ![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout_mqb.jpg?raw=true)
 
@@ -89,6 +91,17 @@ Below is the connector pinout for the VW T-Cross dashboard:
 | 11 | ESP/Digital Pot GND | Fuel level indicator GND |
 | 14 | Digital Pot FS1 | Fuel level indicator pin 1 |
 | 25 | Digital Pot FS2 | Fuel level indicator pin 2 |
+
+### Wiring for BMW F series cluster
+
+| Cluster pin | Connect to | Comment |
+|--|--|--|
+| 1, 2 | +12V |
+| 4, 5 | Through a NTC (10k?) | Optional: outside temperature sensor |
+| 7, 8 | GND (12V power supply) |
+| 11 | +12V | Wakeup signal |
+| 6 | CAN H (connect to your can bus interface) |
+| 12 | CAN L (connect to your can bus interface) |
 
 ### Other wiring
 
@@ -104,7 +117,7 @@ Connect the CAN bus interface to ESP32 according to this:
 | VCC | ESP VIN | This is the 5V line when ESP is powered from USB |
 
 ### Fuel level simulation
-Instrument clusters use analog resistance values in order to calculate fuel level. The best way to simulate that is through the use of an X9C102 digital potentiometer. Connect it according to the schematic below. You will need two 1k ohm resistors in addition to the digital potentiometer itself. 
+Most instrument clusters use analog resistance values in order to calculate fuel level. The best way to simulate that is through the use of an X9C102 digital potentiometer. Connect it according to the schematic below. You will need two 1k ohm resistors in addition to the digital potentiometer itself. 
 
 When connecting the digital pot you might find that if you increase the value in the dashboard, the value on the cluster goes down. If this is the case swap connections FS1 and FS2. 
 
@@ -126,6 +139,7 @@ Finally you will need to install a few libraries:
  - [ESPDash](https://docs.espdash.pro/) - install through library manager - tested using 4.0.1
  - [X9C10X](https://github.com/RobTillaart/X9C10X) - install through library manager - tested using 0.2.2
  - [WifiManager](https://github.com/tzapu/WiFiManager) - install through library manager - tested using 2.0.16-rc.2
+ - [MultiMap](https://github.com/RobTillaart/MultiMap) - Install through library manager - tested using 0.2.0
 
 Now that you have done that you can compile and install the sketch to your ESP32. Upon starting the ESP will create a wifi network access point called `CarCluster`. Connect to it using your phone/laptop using the password `carcluster`. After you have done that you can open a web browser (if a popup one doesn't open automatically upon connection) and navigate to `192.168.4.1`. This will bring up WifiManager where you can see the networks around you and connect to the one you want. After you do that your ESP will automatically connect to the network you select unless an error occurs in which case the access point will be created again. If you do not configure the wifi network in 3 minutes the ESP will boot in serial only mode that you can use with Simhub. 
 
