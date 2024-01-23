@@ -8,14 +8,11 @@
 
 Ever wondered if you could use a car instrument cluster outside of your car? Well... the answer to that question is yes. The aim of this project is to give you the ability to run a real instrument cluster from a real car on your desk. The main purpose of this is gaming, but the possibilities are endless. You might want to use it as a clock. Or maybe you want to show the amount of unread emails - possibilities are endless.
 
-Here is a little demo video of me playing forza Horizon 4 (using a PQ instrument cluster):
+Here are a few demo videos of various instrument clusters in action:
 
-[![](https://github.com/r00li/CarCluster/blob/main/Misc/video_thumb.png?raw=true)
-](https://youtu.be/-aPPZKZ644M)
-
-And a demo video of the playing Beam NG (using MQB instrument cluster)
-
-[![](https://github.com/r00li/CarCluster/blob/main/Misc/video2_thumb.png?raw=true )](https://youtu.be/H56cSgZeaOw )
+| [![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_vw_pq.png?raw=true )](https://youtu.be/-aPPZKZ644M) | [![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_vw_mqb.png?raw=true )](https://youtu.be/H56cSgZeaOw ) | [![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_bmwf.png?raw=true)](https://youtu.be/-aPPZKZ644M) |
+|--|--|--|
+| VW PQ | VW MQB | BMW F |
 
 ## What do I need?
 The hardware for this is pretty straightforward. You will need:
