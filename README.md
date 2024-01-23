@@ -10,7 +10,7 @@ Ever wondered if you could use a car instrument cluster outside of your car? Wel
 
 Here are a few demo videos of various instrument clusters in action:
 
-| [![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_vw_pq.png?raw=true )](https://youtu.be/-aPPZKZ644M) | [![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_vw_mqb.png?raw=true )](https://youtu.be/H56cSgZeaOw ) | [![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_bmwf.png?raw=true)](https://youtu.be/-aPPZKZ644M) |
+| [![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_vw_pq.png?raw=true )](https://youtu.be/-aPPZKZ644M) | [![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_vw_mqb.png?raw=true )](https://youtu.be/H56cSgZeaOw ) | [![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_bmwf.png?raw=true)](https://youtu.be/Q27mN9_AWF0) |
 |--|--|--|
 | VW PQ | VW MQB | BMW F |
 
@@ -49,8 +49,9 @@ If you want to use the instrument cluster for gaming then currently supported ar
   
 ## Set it up
 ### Wiring for VW PQ platform cluster
-Below is the connector pinout for the Polo 6R dashboard:
-![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout.jpg?raw=true)You can also see my improvised connector. Just two rows of standard 2.54mm female pin headers glued together. If you can I would suggest you get a cluster that comes with it's original connector.
+Below is the connector pinout for the Polo 6R instrument cluster:
+![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout.jpg?raw=true)
+You can also see my improvised connector. Just two rows of standard 2.54mm female pin headers glued together. If you can I would suggest you get a cluster that comes with it's original connector.
 
 Wire everything according to the tables below:
 
@@ -76,7 +77,7 @@ Wire everything according to the tables below:
 | 19 | Through a NTC (10k?) | Optional: outside temperature sensor |
 
 ### Wiring for VW MQB platform cluster
-Below is the connector pinout for the VW T-Cross dashboard:
+Below is the connector pinout for the VW T-Cross instrument cluster:
 ![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout_mqb.jpg?raw=true)
 
 | Cluster pin | Connect to | Comment |
@@ -90,6 +91,8 @@ Below is the connector pinout for the VW T-Cross dashboard:
 | 25 | Digital Pot FS2 | Fuel level indicator pin 2 |
 
 ### Wiring for BMW F series cluster
+Below is the connector pinout for the BMW F10 instrument cluster:
+![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout_bmw_f.jpg?raw=true)
 
 | Cluster pin | Connect to | Comment |
 |--|--|--|
