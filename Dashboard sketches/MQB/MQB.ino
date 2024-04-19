@@ -587,6 +587,60 @@ void listenForzaUDP(int port) {
         int handbrake = (int)(rpmBuff[0]);
         handbrake = handbrake > 0 ? true : false;
       }
+
+      //Forza Motosport 2023 protocol https://forums.forza.net/t/data-out-feature-in-forza-motorsport/651333
+      if (packet.length() == 331) {
+        char rpmBuff[4];  // four bytes in a float 32
+
+        // CURRENT_ENGINE_RPM
+        memcpy(rpmBuff, (packet.data() + 16), 4);
+        rpm = *((float*)rpmBuff);
+
+        // IDLE_ENGINE_RPM
+        //memcpy(rpmBuff, (packet.data() + 12), 4);
+        //if (idle_rpm != *((float*)rpmBuff)) {
+        //  idle_rpm = *((float*)rpmBuff);
+        //}
+
+        // MAX_ENGINE_RPM
+        memcpy(rpmBuff, (packet.data() + 8), 4);
+        float max_rpm = *((float*)rpmBuff);
+
+        if (max_rpm == 0) {
+          doorOpen = true;  // We are in a menu
+        } else {
+          doorOpen = false;
+        }
+
+        if (max_rpm > maximumRPMValue) {
+          rpm = map(rpm, 0, max_rpm, 0, maximumRPMValue);
+        }
+
+        // SPEED
+        memcpy(rpmBuff, (packet.data() + 244), 4);
+        int someSpeed = *((float*)rpmBuff);
+        someSpeed = someSpeed * 3.6;
+        if (someSpeed > maximumSpeedValue) { someSpeed = maximumSpeedValue; }
+        speed = someSpeed;
+
+        // GEAR
+        memcpy(rpmBuff, (packet.data() + 307), 1);
+        int forzaGear = (int)(rpmBuff[0]);
+        if (forzaGear == 0) {
+          gear = 11;
+        } else if (forzaGear > 9) {
+          gear = 13;
+        } else {
+          gear = forzaGear;
+        }
+        if (max_rpm == 0) { gear = 10; }  // Idle
+
+        // HANDBRAKE
+        // For some reason keeping handbrake signal on causes weird issues with the cluster, keep it on for just a flash
+        memcpy(rpmBuff, (packet.data() + 318), 1);
+        int handbrake = (int)(rpmBuff[0]);
+        handbrake = handbrake > 0 ? true : false;
+      }
     });
   }
 }
