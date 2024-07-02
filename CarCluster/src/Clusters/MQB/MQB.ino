@@ -122,7 +122,7 @@ Card ignitionCard(&dashboard, BUTTON_CARD, "Ignition");
 
 
 // TEsting only. To be removed
-/*
+
 Card val0Card(&dashboard, SLIDER_CARD, "VAL0", "", 0, 255);
 Card val1Card(&dashboard, SLIDER_CARD, "VAL1", "", 0, 255);
 Card val2Card(&dashboard, SLIDER_CARD, "VAL2", "", 0, 255);
@@ -132,7 +132,7 @@ Card val5Card(&dashboard, SLIDER_CARD, "VAL5", "", 0, 255);
 Card val6Card(&dashboard, SLIDER_CARD, "VAL6", "", 0, 255);
 Card val7Card(&dashboard, SLIDER_CARD, "VAL7", "", 0, 255);
 uint8_t val0 = 0, val1 = 0, val2 = 0, val3 = 0, val4 = 0, val5 = 0, val6 = 0, val7 = 0;
-*/
+
 
 // UDP server configuration (for telemetry data)
 AsyncUDP forzaUdp;
@@ -295,7 +295,7 @@ void setupWebPage() {
     dashboard.sendUpdates();
   });
 
-/*
+
   val0Card.attachCallback([&](int value) {
     val0 = value;
     val0Card.update(value);
@@ -343,7 +343,7 @@ void setupWebPage() {
     val7Card.update(value);
     dashboard.sendUpdates();
   });
-
+/*
   buttonMenuCard.attachCallback([&](int value) {
     mqbDash.sendSteeringWheelControls(1);
     buttonMenuCard.update(value);
@@ -372,8 +372,8 @@ void setupWebPage() {
     mqbDash.sendSteeringWheelControls(7);
     buttonViewCard.update(value);
     dashboard.sendUpdates();
-  });
-*/
+  });*/
+
 
   server.begin();
 
@@ -399,7 +399,7 @@ void loop() {
   setFuel(fuelQuantity);
 
   //Testing only. To be removed
-  //mqbDash.updateTestBuffer(val0, val1, val2, val3, val4, val5, val6, val7);
+  mqbDash.updateTestBuffer(val0, val1, val2, val3, val4, val5, val6, val7);
 
   // Serial message handling
   readSerialJson();

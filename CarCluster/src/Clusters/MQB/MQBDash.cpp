@@ -46,7 +46,7 @@ void MQBDash::updateWithState(int speed,
     //sendSWA01();
 
     // Testing only. To be removed
-    // sendTestBuffers();
+    sendTestBuffers();
 
     seq++;
     if (seq > 15) {
@@ -463,6 +463,7 @@ void MQBDash::updateTestBuffer(uint8_t val0, uint8_t val1, uint8_t val2, uint8_t
 }
 
 void MQBDash::sendTestBuffers() {
+  CAN.sendMsgBuf(0x128, 0, 3, testBuff);
   //
   // TESTING ONLY. TO BE REMOVED
   //
