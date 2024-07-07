@@ -7,8 +7,9 @@
 #ifndef SIMHUB_GAME
 #define SIMHUB_GAME
 
-#include <Arduino.h>
-#include <ArduinoJson.h>  // For parsing serial data and for ESPDash (install through library manager: ArduinoJson by Benoit Blanchon - tested using 6.20.1)
+#include "Arduino.h"
+#include "../Libs/ArduinoJson/ArduinoJson.h"  // For parsing serial data and for ESPDash ( https://github.com/bblanchon/ArduinoJson )
+
 #include "GameSimulation.h"
 
 class SimhubGame: public Game {

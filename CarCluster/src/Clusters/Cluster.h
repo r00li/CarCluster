@@ -7,7 +7,8 @@
 #ifndef CLUSTER_GENERIC
 #define CLUSTER_GENERIC
 
-#include <Arduino.h>
+#include "Arduino.h"
+
 #include "../Games/GameSimulation.h"
 
 class Cluster {

@@ -10,6 +10,7 @@ WebDashboard::WebDashboard(GameState &game, int serverPort, unsigned long webDas
   gameState(game),
   server(serverPort), 
   dashboard(&server),
+  introCard(&dashboard, GENERIC_CARD, "Info"),
   speedCard(&dashboard, SLIDER_CARD, "Speed", "km/h", 0, gameState.configuration.maximumSpeedValue),
   rpmCard(&dashboard, SLIDER_CARD, "RPM", "rpm", 0, gameState.configuration.maximumRPMValue),
   fuelCard(&dashboard, SLIDER_CARD, "Fuel qunaity", "%", 0, 100),
@@ -25,10 +26,13 @@ WebDashboard::WebDashboard(GameState &game, int serverPort, unsigned long webDas
   backlightCard(&dashboard, SLIDER_CARD, "Backlight brightness", "%", 0, 100),
   coolantTemperatureCard(&dashboard, SLIDER_CARD, "Coolant temperature", "C", gameState.configuration.minimumCoolantTemperature, gameState.configuration.maximumCoolantTemperature),
   handbrakeCard(&dashboard, BUTTON_CARD, "Handbrake"),
-  buttonUpCard(&dashboard, BUTTON_CARD, "Steering button"),
+  button1Card(&dashboard, BUTTON_CARD, "Steering button 1"),
+  button2Card(&dashboard, BUTTON_CARD, "Steering button 2"),
+  button3Card(&dashboard, BUTTON_CARD, "Steering button 3"),
   ignitionCard(&dashboard, BUTTON_CARD, "Ignition"),
-  driveModeCard(&dashboard, SLIDER_CARD, "Drive mode", "", 1, 7) { 
+  driveModeCard(&dashboard, SLIDER_CARD, "[BMW] Drive mode", "", 1, 7) { 
   this->webDashboardUpdateInterval = webDashboardUpdateInterval;
+  introCard.update("Not all functions are available on all clusters");
 }
 
 void WebDashboard::begin() {
@@ -122,10 +126,22 @@ void WebDashboard::begin() {
     dashboard.sendUpdates();
   });
 
-  buttonUpCard.attachCallback([&](int value) {
-    buttonUpCard.update(value);
+  button1Card.attachCallback([&](int value) {
+    button1Card.update(value);
     dashboard.sendUpdates();
     gameState.buttonEventToProcess = 1;
+  });
+
+  button2Card.attachCallback([&](int value) {
+    button2Card.update(value);
+    dashboard.sendUpdates();
+    gameState.buttonEventToProcess = 2;
+  });
+
+  button3Card.attachCallback([&](int value) {
+    button3Card.update(value);
+    dashboard.sendUpdates();
+    gameState.buttonEventToProcess = 3;
   });
 
   ignitionCard.attachCallback([&](int value) {

@@ -7,7 +7,7 @@
 #ifndef GAME_SIMULATION
 #define GAME_SIMULATION
 
-#include <Arduino.h>
+#include "Arduino.h"
 
 struct ClusterConfiguration {
   float speedCorrectionFactor = 1.00;   // Calibration of speed gauge

@@ -19,15 +19,16 @@
 #define CAN_INT 2
 
 // Select which cluster you will be using
-// 1 = BMW F10 (BMW F series)
+// 1 = BMW F10, BMW F30 6WA (BMW F series)
 // 2 = Mini F55 (BMW F series)
 // 3 = Golf 7 (VW MQB)
 // 4 = Polo 6R (VW PQ25)
 // 5 = Skoda Superb 2 (VW PQ46)
-#define CLUSTER 2
+#define CLUSTER 1
 
 // Configure the maximum RPM value shown on the cluster
-#define MAXIMUM_RPM 7000
+// Leave at 0 for using the defaults based on the cluster. Change this is your cluster has different limits
+#define MAXIMUM_RPM 0
 
 // A correction factor for the RPM value. RPM will be multiplied by this value.
 // This enables you to fix displayed values that are slightly off, though you might not be able
@@ -35,7 +36,8 @@
 #define RPM_CORRECTION_FACTOR 1.0
 
 // Configure the maximum speed shown on the cluster (in km/h)
-#define MAXIMUM_SPEED 255
+// Leave at 0 for using the defaults based on the cluster. Change this is your cluster has different limits
+#define MAXIMUM_SPEED 0
 
 // A correction factor for the speed. Speed will be multiplied by this value.
 // This enables you to fix displayed values that are slightly off, though you might not be able
@@ -44,8 +46,9 @@
 
 // Define the minimum and maximum coolant temperature your cluster can display
 // Leave alone if your cluster has no such display
-#define MINIMUM_COOLANT_TEMPERATURE 50
-#define MAXIMUM_COOLANT_TEMPERATURE 150
+// Leave at 0 for using the defaults based on the cluster. Change this is your cluster has different limits.
+#define MINIMUM_COOLANT_TEMPERATURE 0
+#define MAXIMUM_COOLANT_TEMPERATURE 0
 
 // Select if you want Wifi to be enabled or not.
 // Wifi gives you a web dashboard that you can use for testing
@@ -83,7 +86,7 @@
 #define MAX_SERIAL_MESSAGE_LENGTH 250
 
 // Baud rate of the USB serial connection (if using Simhub set this to the same value)
-#define SERIAL_BAUD_RATE 921000
+#define SERIAL_BAUD_RATE 921600
 
 // UDP/TCP ports used for various games and other stuff.
 // Only applicable if wifi is enabled.
@@ -95,18 +98,11 @@
 
 
 // Libraries
-#include <mcp_can.h>  // CAN Bus Shield Compatibility Library (install through library manager: mcp_can by coryjfowler - tested using 1.5.0)
-#include <SPI.h>      // CAN Bus Shield SPI Pin Library (arduino system library)
-#include <AsyncUDP.h>     // For game integration (system library part of ESP core)
-#include <ArduinoJson.h>  // For parsing serial data and for ESPDash (install through library manager: ArduinoJson by Benoit Blanchon - tested using 7.0.4)
-#include "X9C10X.h"       // For fuel level simulation (install through library manager: X9C10X by Rob Tillaart - tested using 0.2.2)
-#include "MultiMap.h"     // For fuel level calculation - supports non linear mapping found on BMW clusters (install through library manager)
+#include <SPI.h> // CAN Bus Shield SPI Pin Library (arduino system library)
 
-#include "WiFiManager.h"        // For easier wifi management (install through library manager: WiFiManager by tzapu - tested using 2.0.16-rc.2)
-#include <WiFi.h>               // Arduino system library (part of ESP core)
-#include <AsyncTCP.h>           // Requirement for ESP-DASH (install manually from: https://github.com/me-no-dev/AsyncTCP )
-#include <ESPAsyncWebServer.h>  // Requirement for ESP-DASH (install manually from:  https://github.com/me-no-dev/ESPAsyncWebServer )
-#include <ESPDash.h>            // Web dashboard ( install from library manager: ESP-DASH by Ayush Sharma - tested using 4.0.1)
+#include "src/Libs/ArduinoJson/ArduinoJson.h" // For parsing serial data and for ESPDash ( https://github.com/bblanchon/ArduinoJson )
+#include "src/Libs/MCP_CAN/mcp_can.h" // CAN Bus Shield Compatibility Library ( https://github.com/coryjfowler/MCP_CAN_lib )
+#include "src/Libs/X9C10X/X9C10X.h" // For fuel level simulation ( https://github.com/RobTillaart/X9C10X )
 
 #include "src/Games/GameSimulation.h"
 #include "src/Games/ForzaHorizonGame.h"
@@ -126,13 +122,15 @@ char canRxMsgString[128];  // Array to store serial string
 
 // Cluster initialization
 #if CLUSTER == 1
+// BMW F10
 #include "src/Clusters/BMW_F/BMWFSeriesCluster.h"
 BMWFSeriesCluster cluster(CAN, false);
-ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
+ClusterConfiguration defaultClusterConfig = cluster.clusterConfig(false);
 #elif CLUSTER == 2
+// F Series Mini
 #include "src/Clusters/BMW_F/BMWFSeriesCluster.h"
 BMWFSeriesCluster cluster(CAN, true);
-ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
+ClusterConfiguration defaultClusterConfig = cluster.clusterConfig(true);
 #endif
 
 // Game simulation variables

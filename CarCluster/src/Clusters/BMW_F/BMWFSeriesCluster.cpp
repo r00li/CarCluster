@@ -5,10 +5,6 @@
 // ####################################################################################################################
 
 #include "BMWFSeriesCluster.h"
-#include "CRC8.h"
-#include "MultiMap.h"
-
-#include <mcp_can.h>
 
 #define lo8(x) (uint8_t)((x) & 0xFF)
 #define hi8(x) (uint8_t)(((x)>>8) & 0xFF)
@@ -64,10 +60,10 @@ BMWFSeriesCluster::BMWFSeriesCluster(MCP_CAN& CAN, bool isCarMini): CAN(CAN) {
 
   if (isCarMini) {
     inFuelRange[0] = 0; inFuelRange[1] = 50; inFuelRange[2] = 100;
-    outFuelRange[0] = 22; inFuelRange[1] = 7; inFuelRange[2] = 3;
+    outFuelRange[0] = 22; outFuelRange[1] = 7; outFuelRange[2] = 3;
   } else {
     inFuelRange[0] = 0; inFuelRange[1] = 50; inFuelRange[2] = 100;
-    outFuelRange[0] = 37; inFuelRange[1] = 18; inFuelRange[2] = 4;
+    outFuelRange[0] = 37; outFuelRange[1] = 18; outFuelRange[2] = 4;
   }
   crc8Calculator.begin();
 }
@@ -86,6 +82,7 @@ void BMWFSeriesCluster::updateWithGame(GameState& game) {
     sendParkBrake(game.handbrake);
     sendDistanceTravelled(mapSpeed(game));
     sendAlerts(game.offroadLight, game.doorOpen, game.handbrake, isCarMini);
+    sendAcc();
 
     counter4Bit++;
     if (counter4Bit >= 14) { counter4Bit = 0; }
@@ -111,7 +108,7 @@ void BMWFSeriesCluster::updateWithGame(GameState& game) {
   }
 }
 
-void BMWFSeriesCluster::sendIgnitionStatus(boolean ignition) {
+void BMWFSeriesCluster::sendIgnitionStatus(bool ignition) {
   uint8_t ignitionStatus = ignition ? 0x8A : 0x8;
   unsigned char ignitionWithoutCRC[] = { 0x80|counter4Bit, ignitionStatus, 0xDD, 0xF1, 0x01, 0x30, 0x06 };
   unsigned char ignitionWithCRC[] = { crc8Calculator.get_crc8(ignitionWithoutCRC, 7, 0x44), ignitionWithoutCRC[0], ignitionWithoutCRC[1], ignitionWithoutCRC[2], ignitionWithoutCRC[3], ignitionWithoutCRC[4], ignitionWithoutCRC[5], ignitionWithoutCRC[6] };
@@ -204,13 +201,13 @@ void BMWFSeriesCluster::sendBasicDriveInfo(int engineTemperature) {
   CAN.sendMsgBuf(0x2C4, 0, 8, engineTempWithCRC);
 }
 
-void BMWFSeriesCluster::sendParkBrake(boolean handbrakeActive) {
+void BMWFSeriesCluster::sendParkBrake(bool handbrakeActive) {
   unsigned char abs3WithoutCRC[] = { 0xF0|counter4Bit, 0x38, 0, handbrakeActive ? 0x15 : 0x14 };
   unsigned char abs3WithCRC[] = { crc8Calculator.get_crc8(abs3WithoutCRC, 4, 0x17), abs3WithoutCRC[0], abs3WithoutCRC[1], abs3WithoutCRC[2], abs3WithoutCRC[3] };
   CAN.sendMsgBuf(0x36F, 0, 5, abs3WithCRC);
 }
 
-void BMWFSeriesCluster::sendFuel(int fuelQuantity, uint8_t inFuelRange[], uint8_t outFuelRange[], boolean isCarMini) {
+void BMWFSeriesCluster::sendFuel(int fuelQuantity, uint8_t inFuelRange[], uint8_t outFuelRange[], bool isCarMini) {
   //Fuel
   uint8_t fuelQuantityLiters = multiMap<uint8_t>(fuelQuantity, inFuelRange, outFuelRange, 3);
   unsigned char fuelWithoutCRC[] = { (isCarMini ? 0 : hi8(fuelQuantityLiters)), (isCarMini ? 0 : lo8(fuelQuantityLiters)), hi8(fuelQuantityLiters), lo8(fuelQuantityLiters), 0x00 };
@@ -231,14 +228,14 @@ void BMWFSeriesCluster::sendDistanceTravelled(int speed) {
   distanceTravelledCounter += speed*2.9;
 }
 
-void BMWFSeriesCluster::sendBlinkers(boolean leftTurningIndicator, boolean rightTurningIndicator) {
+void BMWFSeriesCluster::sendBlinkers(bool leftTurningIndicator, bool rightTurningIndicator) {
   //Blinkers
   uint8_t blinkerStatus = (leftTurningIndicator == 0 && rightTurningIndicator == 0) ? 0x80 : (0x81 | leftTurningIndicator << 4 | rightTurningIndicator << 5);
   unsigned char blinkersWithoutCRC[] = { blinkerStatus, 0xF0 };
   CAN.sendMsgBuf(0x1F6, 0, 2, blinkersWithoutCRC);
 }
 
-void BMWFSeriesCluster::sendLights(boolean mainLights, boolean highBeam, boolean rearFogLight, boolean frontFogLight) {
+void BMWFSeriesCluster::sendLights(bool mainLights, bool highBeam, bool rearFogLight, bool frontFogLight) {
   //Lights
   //32 = front fog light, 64 = rear fog light, 2 = high beam, 4 = main lights
   uint8_t lightStatus = highBeam << 1 | mainLights << 2 | frontFogLight << 5 | rearFogLight << 6;
@@ -253,7 +250,7 @@ void BMWFSeriesCluster::sendBacklightBrightness(uint8_t brightness) {
   CAN.sendMsgBuf(0x202, 0, 2, backlightBrightnessWithoutCRC);
 }
 
-void BMWFSeriesCluster::sendAlerts(boolean offroad, boolean doorOpen, boolean handbrake, boolean isCarMini) {
+void BMWFSeriesCluster::sendAlerts(bool offroad, bool doorOpen, bool handbrake, bool isCarMini) {
   // Check control messages
   // These are complicated since the same CAN ID is used to show variety of messages
   // Sending 0x29 on byte 4 sets the alert for the ID in byte 2, while sending 0x28 clears that message
@@ -316,4 +313,15 @@ void BMWFSeriesCluster::sendDriveMode(uint8_t driveMode) {
   unsigned char modeWithoutCRC[] = { 0xF0|counter4Bit, 0, 0, driveMode, 0x11, 0xC0 };
   unsigned char modeWithCRC[] = { crc8Calculator.get_crc8(modeWithoutCRC, 6, 0x4a), modeWithoutCRC[0], modeWithoutCRC[1], modeWithoutCRC[2], modeWithoutCRC[3], modeWithoutCRC[4], modeWithoutCRC[5] };
   CAN.sendMsgBuf(0x3A7, 0, 7, modeWithCRC);
+}
+
+void BMWFSeriesCluster::sendAcc() {
+  unsigned char accWithoutCrc[] = { 0xF0|accCounter, 0x5C, 0x70, 0x00, 0x00 };
+  unsigned char accWithCrc[] = { crc8Calculator.get_crc8(accWithoutCrc, 5, 0x6b), accWithoutCrc[0], accWithoutCrc[1], accWithoutCrc[2], accWithoutCrc[3], accWithoutCrc[4] };
+  CAN.sendMsgBuf(0x33b, 0, 6, accWithCrc);
+      
+  accCounter += 4;
+  if (accCounter > 0x0E) {
+    accCounter = accCounter - 0x0F;
+  }
 }

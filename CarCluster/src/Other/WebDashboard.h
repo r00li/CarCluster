@@ -7,12 +7,15 @@
 #ifndef WEB_DASHBOARD
 #define WEB_DASHBOARD
 
-#include <Arduino.h>
-#include <WiFi.h>               // Arduino system library (part of ESP core)
-#include <AsyncTCP.h>           // Requirement for ESP-DASH (install manually from: https://github.com/me-no-dev/AsyncTCP )
-#include <ESPAsyncWebServer.h>  // Requirement for ESP-DASH (install manually from:  https://github.com/me-no-dev/ESPAsyncWebServer )
-#include <ESPDash.h>            // Web dashboard ( install from library manager: ESP-DASH by Ayush Sharma - tested using 4.0.1)
+#include "Arduino.h"
+#include "WiFi.h" // Arduino system library (part of ESP core)
+
+#include "../Libs/AsyncTCP/AsyncTCP.h" // Requirement for ESP-DASH ( https://github.com/mathieucarbou/AsyncTCP )
+#include "../Libs/ESPAsyncWebServer/ESPAsyncWebServer.h"  // Requirement for ESP-DASH ( https://github.com/mathieucarbou/ESPAsyncWebServer )
+#include "../Libs/ESP-DASH/ESPDash.h" // Web dashboard ( https://github.com/ayushsharma82/ESP-DASH )
+
 #include "../Games/GameSimulation.h"
+
 
 class WebDashboard {
   WebDashboard(const WebDashboard &other) = delete;
@@ -34,6 +37,7 @@ class WebDashboard {
     unsigned long lastWebDashboardUpdateTime = 0;
 
     // Cards
+    Card introCard;
     Card speedCard;
     Card rpmCard;
     Card fuelCard;
@@ -49,7 +53,9 @@ class WebDashboard {
     Card backlightCard;
     Card coolantTemperatureCard;
     Card handbrakeCard;
-    Card buttonUpCard;
+    Card button1Card;
+    Card button2Card;
+    Card button3Card;
     Card ignitionCard;
     Card driveModeCard;
 
