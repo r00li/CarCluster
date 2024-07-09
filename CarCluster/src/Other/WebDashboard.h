@@ -49,6 +49,7 @@ class WebDashboard {
     Card mainLightsCard;
     Card doorOpenCard;
     Card dscActiveCard;
+    Card absLightCard;
     Card gearCard;
     Card backlightCard;
     Card coolantTemperatureCard;
@@ -58,6 +59,8 @@ class WebDashboard {
     Card button3Card;
     Card ignitionCard;
     Card driveModeCard;
+    Card outdoorTemperatureCard;
+    Card indicatorsBlinkCard;
 
     // Card val0Card(&dashboard, SLIDER_CARD, "VAL0", "", 0, 255);
     // Card val1Card(&dashboard, SLIDER_CARD, "VAL1", "", 0, 255);

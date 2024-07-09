@@ -16,8 +16,13 @@ struct ClusterConfiguration {
   int maximumSpeedValue = 260;          // Set what is the maximum speed on your cluster (in km/h)
   int minimumCoolantTemperature = 0;    // Set what is the minimum coolant temperature on your cluster (in C)
   int maximumCoolantTemperature = 200;  // Set what is the maximum coolant temperature on your cluster (in C)
+  int minimumFuelPotValue = 18;         // Calibration of fuel pot - minimum value
+  int maximumFuelPotValue = 83;         // Calibration of fuel pot - maximum value
+  int minimumFuelPot2Value = 17;        // Calibration of fuel pot 2 - minimum value
+  int maximumFuelPot2Value = 75;        // Calibration of fuel pot 2 - maximum value
+  int isDualFuelPot = false;
 
-  static ClusterConfiguration updatedFromDefaults(ClusterConfiguration current, float speedCorrectionFactor, float rpmCorrectionFactor, int maximumRPMValue, int maximumSpeedValue, int minimumCoolantTemperature, int maximumCoolantTemperature) {
+  static ClusterConfiguration updatedFromDefaults(ClusterConfiguration current, float speedCorrectionFactor, float rpmCorrectionFactor, int maximumRPMValue, int maximumSpeedValue, int minimumCoolantTemperature, int maximumCoolantTemperature, int minimumFuelPotValue, int maximumFuelPotValue, int minimumFuelPot2Value, int maximumFuelPot2Value) {
     ClusterConfiguration newConfiguration;
 
     newConfiguration.speedCorrectionFactor = speedCorrectionFactor;
@@ -46,6 +51,32 @@ struct ClusterConfiguration {
     } else {
       newConfiguration.maximumCoolantTemperature = current.maximumCoolantTemperature;
     }
+
+    if (minimumFuelPotValue > -1) {
+      newConfiguration.minimumFuelPotValue = minimumFuelPotValue;
+    } else {
+      newConfiguration.minimumFuelPotValue = current.minimumFuelPotValue;
+    }
+
+    if (maximumFuelPotValue > -1) {
+      newConfiguration.maximumFuelPotValue = maximumFuelPotValue;
+    } else {
+      newConfiguration.maximumFuelPotValue = current.maximumFuelPotValue;
+    }
+
+    if (minimumFuelPot2Value > -1) {
+      newConfiguration.minimumFuelPot2Value = minimumFuelPot2Value;
+    } else {
+      newConfiguration.minimumFuelPot2Value = current.minimumFuelPot2Value;
+    }
+
+    if (maximumFuelPot2Value > -1) {
+      newConfiguration.maximumFuelPot2Value = maximumFuelPot2Value;
+    } else {
+      newConfiguration.maximumFuelPot2Value = current.maximumFuelPot2Value;
+    }
+
+    newConfiguration.isDualFuelPot = current.isDualFuelPot;
 
     return newConfiguration;
   }
@@ -87,6 +118,7 @@ class GameState {
   // Indicators
   bool leftTurningIndicator = false;                 // Left blinker
   bool rightTurningIndicator = false;                // Right blinker
+  bool turningIndicatorsBlinking = false;             // Should blinking be controlled by the game or by this sketch?
   bool mainLights = true;                            // Are the main lights turned on?
   bool handbrake = false;                            // Enables handbrake signal
   bool rearFogLight = false;                         // Enable rear Fog Light indicator
@@ -94,7 +126,7 @@ class GameState {
   bool highBeam = false;                             // Enable High Beam Light
   bool doorOpen = false;                             // Simulate open doors
   bool offroadLight = false;                         // Simulates Offroad drive mode
-  uint8_t driveMode = 3;                             // Current drive mode: 1= Traction, 2= Comfort+, 4= Sport, 5= Sport+, 6= DSC off, 7= Eco pro 
+  uint8_t driveMode = 3;                             // Current drive mode for BMW: 1= Traction, 2= Comfort+, 4= Sport, 5= Sport+, 6= DSC off, 7= Eco pro 
   bool absLight = false;                             // Shows ABS Signal on dashboard
   bool batteryLight = false;                         // Show Battery Warning.
 

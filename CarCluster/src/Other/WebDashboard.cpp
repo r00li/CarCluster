@@ -22,6 +22,7 @@ WebDashboard::WebDashboard(GameState &game, int serverPort, unsigned long webDas
   mainLightsCard(&dashboard, BUTTON_CARD, "Main lights"),
   doorOpenCard(&dashboard, BUTTON_CARD, "Door open warning"),
   dscActiveCard(&dashboard, BUTTON_CARD, "DSC active"),
+  absLightCard(&dashboard, BUTTON_CARD, "ABS indicator"),
   gearCard(&dashboard, SLIDER_CARD, "Selected gear", "", 1, 15),
   backlightCard(&dashboard, SLIDER_CARD, "Backlight brightness", "%", 0, 100),
   coolantTemperatureCard(&dashboard, SLIDER_CARD, "Coolant temperature", "C", gameState.configuration.minimumCoolantTemperature, gameState.configuration.maximumCoolantTemperature),
@@ -30,6 +31,8 @@ WebDashboard::WebDashboard(GameState &game, int serverPort, unsigned long webDas
   button2Card(&dashboard, BUTTON_CARD, "Steering button 2"),
   button3Card(&dashboard, BUTTON_CARD, "Steering button 3"),
   ignitionCard(&dashboard, BUTTON_CARD, "Ignition"),
+  outdoorTemperatureCard(&dashboard, SLIDER_CARD, "Outdoor temperature", "C", -30, 40),
+  indicatorsBlinkCard(&dashboard, BUTTON_CARD, "[VW] Indicators blink"),
   driveModeCard(&dashboard, SLIDER_CARD, "[BMW] Drive mode", "", 1, 7) { 
   this->webDashboardUpdateInterval = webDashboardUpdateInterval;
   introCard.update("Not all functions are available on all clusters");
@@ -102,6 +105,12 @@ void WebDashboard::begin() {
     dashboard.sendUpdates();
   });
 
+  absLightCard.attachCallback([&](int value) {
+    gameState.absLight = (bool)value;
+    absLightCard.update(value);
+    dashboard.sendUpdates();
+  });
+
   gearCard.attachCallback([&](int value) {
     gameState.gear = static_cast<GearState>(value);
     gearCard.update(value);
@@ -153,6 +162,18 @@ void WebDashboard::begin() {
   driveModeCard.attachCallback([&](int value) {
     gameState.driveMode = value;
     driveModeCard.update(value);
+    dashboard.sendUpdates();
+  });
+
+  outdoorTemperatureCard.attachCallback([&](int value) {
+    gameState.outdoorTemperature = value;
+    outdoorTemperatureCard.update(value);
+    dashboard.sendUpdates();
+  });
+
+  indicatorsBlinkCard.attachCallback([&](int value) {
+    gameState.turningIndicatorsBlinking = (bool)value;
+    indicatorsBlinkCard.update(value);
     dashboard.sendUpdates();
   });
 
@@ -224,12 +245,15 @@ void WebDashboard::update() {
     mainLightsCard.update(gameState.mainLights);
     doorOpenCard.update(gameState.doorOpen);
     dscActiveCard.update(gameState.offroadLight);
+    absLightCard.update(gameState.absLight);
     gearCard.update(gameState.gear);
     backlightCard.update(gameState.backlightBrightness);
     coolantTemperatureCard.update(gameState.coolantTemperature);
     handbrakeCard.update(gameState.handbrake);
     ignitionCard.update(gameState.ignition);
     driveModeCard.update(gameState.driveMode);
+    outdoorTemperatureCard.update(gameState.outdoorTemperature);
+    indicatorsBlinkCard.update(gameState.turningIndicatorsBlinking);
     dashboard.sendUpdates();
 
     lastWebDashboardUpdateTime = millis();

@@ -56,12 +56,39 @@
 // If using a different board select 0.
 //
 // In order to connect to wifi the ESP will on first boot create a wifi access point called CarCluster. Connect to it (password is "carcluster"),
-// then open your web browser and navigate to 192.168.4.1 and use the UI there to connect your wifi network.
-// If wifi is not connected after 3 minutes the ESP will continue normal operation and you can use it in Simgub/serial mode
+// then open your web browser and navigate to 192.168.4.1 and use the UI there to connect your wifi network (if configuration popup doesn't open automatically).
+// If wifi is not connected after 3 minutes the ESP will continue normal operation and you can use it in Simhub/serial mode
 // 
 // 1 for enabled
 // 0 for disabled
 #define WIFI_ENABLED 1
+
+// Analog fuel simulation - for clusters with separate fuel level pins (currently VW PQ and MQB clusters).
+// Requires use of X9C10X digital potentiometer(s)
+// If one or two potentiometers are used depends on the specific cluster.
+// Only configure the values that make sense for your clusters - if using 1 pot leave configuration for pot 2 as is
+//
+// PIN CONFIGURATION:
+#define ANALOG_FUEL_POT_INC 14
+#define ANALOG_FUEL_POT_DIR 27
+#define ANALOG_FUEL_POT_CS1 12
+// If using dual fuel potentiometers (usually found on larger cars)
+#define ANALOG_FUEL_POT_CS2 33
+//
+// CONFIGURATION OF MINIMUM AND MAXIMUM VALUES:
+// Depends on speicific sluter. If fuel percentage indicated on your cluster is wrong, change these values
+#define ANALOG_FUEL_POT_MINIMUM_VALUE 18
+#define ANALOG_FUEL_POT_MAXIMUM_VALUE 83
+#define ANALOG_FUEL_POT_MINIMUM_VALUE2 17
+#define ANALOG_FUEL_POT_MAXIMUM_VALUE2 75
+
+// VW PQ specific pin configuration (for various non CAN based values)
+// If you are not using VW PQ based instrument cluster leave this alone
+#define VWPQ_SPRINKLER_WATER_SENSOR_PIN 4
+#define VWPQ_COOLANT_SHORTAGE_PIN 16
+#define VWPQ_OIL_PRESSURE_SWITCH_PIN 15
+#define VWPQ_HANDBRAKE_INDICATOR_PIN 13
+#define VW_PQ_BRAKE_FLUID_WARNING_PIN 22
 
 // --------------------------------------------------------------------
 // ------------------------ END USER CONFIGURATION --------------------
@@ -102,14 +129,9 @@
 
 #include "src/Libs/ArduinoJson/ArduinoJson.h" // For parsing serial data and for ESPDash ( https://github.com/bblanchon/ArduinoJson )
 #include "src/Libs/MCP_CAN/mcp_can.h" // CAN Bus Shield Compatibility Library ( https://github.com/coryjfowler/MCP_CAN_lib )
-#include "src/Libs/X9C10X/X9C10X.h" // For fuel level simulation ( https://github.com/RobTillaart/X9C10X )
 
 #include "src/Games/GameSimulation.h"
-#include "src/Games/ForzaHorizonGame.h"
-#include "src/Games/BeamNGGame.h"
 #include "src/Games/SimhubGame.h"
-#include "src/Other/WifiFunctions.h"
-#include "src/Other/WebDashboard.h"
 
 // CAN bus configuration
 MCP_CAN CAN(SPI_CS_PIN);  // Set CS pin
@@ -122,27 +144,51 @@ char canRxMsgString[128];  // Array to store serial string
 
 // Cluster initialization
 #if CLUSTER == 1
-// BMW F10
-#include "src/Clusters/BMW_F/BMWFSeriesCluster.h"
-BMWFSeriesCluster cluster(CAN, false);
-ClusterConfiguration defaultClusterConfig = cluster.clusterConfig(false);
+  // BMW F10
+  #include "src/Clusters/BMW_F/BMWFSeriesCluster.h"
+  BMWFSeriesCluster cluster(CAN, false);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig(false);
 #elif CLUSTER == 2
-// F Series Mini
-#include "src/Clusters/BMW_F/BMWFSeriesCluster.h"
-BMWFSeriesCluster cluster(CAN, true);
-ClusterConfiguration defaultClusterConfig = cluster.clusterConfig(true);
+  // F Series Mini
+  #include "src/Clusters/BMW_F/BMWFSeriesCluster.h"
+  BMWFSeriesCluster cluster(CAN, true);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig(true);
+#elif CLUSTER == 3
+  // Golf 7
+  #include "src/Clusters/VW_MQB/VWMQBCluster.h"
+  VWMQBCluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
+#elif CLUSTER == 4
+  // VW Polo  6R
+  #include "src/Clusters/VW_PQ25/VWPQ25Cluster.h"
+  VWPQ25Cluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, VWPQ_SPRINKLER_WATER_SENSOR_PIN, VWPQ_COOLANT_SHORTAGE_PIN, VWPQ_OIL_PRESSURE_SWITCH_PIN, VWPQ_HANDBRAKE_INDICATOR_PIN, VW_PQ_BRAKE_FLUID_WARNING_PIN);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
+#elif CLUSTER == 5
+  // Skoda Superb 2
+  #include "src/Clusters/VW_PQ46/VWPQ46Cluster.h"
+  VWPQ46Cluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, VWPQ_SPRINKLER_WATER_SENSOR_PIN, VWPQ_COOLANT_SHORTAGE_PIN, VWPQ_OIL_PRESSURE_SWITCH_PIN, VWPQ_HANDBRAKE_INDICATOR_PIN, VW_PQ_BRAKE_FLUID_WARNING_PIN);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
 #endif
 
 // Game simulation variables
-ClusterConfiguration clusterConfig = ClusterConfiguration::updatedFromDefaults(defaultClusterConfig, SPEED_CORRECTION_FACTOR, RPM_CORRECTION_FACTOR, MAXIMUM_RPM, MAXIMUM_SPEED, MINIMUM_COOLANT_TEMPERATURE, MAXIMUM_COOLANT_TEMPERATURE);
+ClusterConfiguration clusterConfig = ClusterConfiguration::updatedFromDefaults(defaultClusterConfig, SPEED_CORRECTION_FACTOR, RPM_CORRECTION_FACTOR, MAXIMUM_RPM, MAXIMUM_SPEED, MINIMUM_COOLANT_TEMPERATURE, MAXIMUM_COOLANT_TEMPERATURE, ANALOG_FUEL_POT_MINIMUM_VALUE, ANALOG_FUEL_POT_MAXIMUM_VALUE, ANALOG_FUEL_POT_MINIMUM_VALUE2, ANALOG_FUEL_POT_MAXIMUM_VALUE2);
 GameState game(clusterConfig);
-ForzaHorizonGame forzaHorizonGame(game, WIFI_FORZA_UDP_PORT);
-BeamNGGame beamNGGame(game, WIFI_BEAM_UDP_PORT);
 SimhubGame simhubGame(game);
 
-// Wifi/web portal variables
-WifiFunctions wifiFunctions;
-WebDashboard webDashboard(game, WIFI_WEB_DASHBOARD_PORT, WIFI_WEB_DASHBOARD_UPDATE_INTERVAL);
+#if WIFI_ENABLED == 1
+  // Wifi/web portal variables
+  #include "src/Other/WifiFunctions.h"
+  #include "src/Other/WebDashboard.h"
+
+  #include "src/Games/ForzaHorizonGame.h"
+  #include "src/Games/BeamNGGame.h"
+
+  WifiFunctions wifiFunctions;
+  WebDashboard webDashboard(game, WIFI_WEB_DASHBOARD_PORT, WIFI_WEB_DASHBOARD_UPDATE_INTERVAL);
+
+  ForzaHorizonGame forzaHorizonGame(game, WIFI_FORZA_UDP_PORT);
+  BeamNGGame beamNGGame(game, WIFI_BEAM_UDP_PORT);
+#endif 
 
 // Serial JSON parsing
 JsonDocument doc;
@@ -155,10 +201,12 @@ void setup() {
   //Begin with Serial Connection
   Serial.begin(SERIAL_BAUD_RATE);
 
-  wifiFunctions.begin(WIFI_CONFIG_PORTAL_ACCESS_POINT_NAME, WIFI_CONFIG_PORTAL_ACCESS_POINT_PASSWORD, WIFI_CONFIG_PORTAL_TIMEOUT);
-  webDashboard.begin();
-  forzaHorizonGame.begin();
-  beamNGGame.begin();
+  #if WIFI_ENABLED == 1
+    wifiFunctions.begin(WIFI_CONFIG_PORTAL_ACCESS_POINT_NAME, WIFI_CONFIG_PORTAL_ACCESS_POINT_PASSWORD, WIFI_CONFIG_PORTAL_TIMEOUT);
+    webDashboard.begin();
+    forzaHorizonGame.begin();
+    beamNGGame.begin();
+  #endif
 
   simhubGame.begin();
 
@@ -187,7 +235,9 @@ void loop() {
   readCanBuffer();
 
   // Update the web dashboard
-  webDashboard.update();
+  #if WIFI_ENABLED == 1
+    webDashboard.update();
+  #endif
 }
 
 void readSerialJson() {

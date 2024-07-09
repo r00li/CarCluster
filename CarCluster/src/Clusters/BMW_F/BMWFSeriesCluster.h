@@ -13,6 +13,9 @@
 #include "CRC8.h"
 #include "../Cluster.h"
 
+#define lo8(x) (uint8_t)((x) & 0xFF)
+#define hi8(x) (uint8_t)(((x)>>8) & 0xFF)
+
 class BMWFSeriesCluster: public Cluster {
 
   // Do not ever send 0x380 ID - that is VIN number
@@ -70,6 +73,11 @@ class BMWFSeriesCluster: public Cluster {
   void sendSteeringWheelButton(int buttonEvent);
   void sendDriveMode(uint8_t driveMode);
   void sendAcc();
+
+  uint8_t mapGenericGearToLocalGear(GearState inputGear);
+  int mapSpeed(GameState& game);
+  int mapRPM(GameState& game);
+  int mapCoolantTemperature(GameState& game);
 };
 
 #endif

@@ -6,10 +6,20 @@
 
 #include "BMWFSeriesCluster.h"
 
-#define lo8(x) (uint8_t)((x) & 0xFF)
-#define hi8(x) (uint8_t)(((x)>>8) & 0xFF)
+BMWFSeriesCluster::BMWFSeriesCluster(MCP_CAN& CAN, bool isCarMini): CAN(CAN) {
+  this->isCarMini = isCarMini;
 
-uint8_t mapGenericGearToLocalGear(GearState inputGear) {
+  if (isCarMini) {
+    inFuelRange[0] = 0; inFuelRange[1] = 50; inFuelRange[2] = 100;
+    outFuelRange[0] = 22; outFuelRange[1] = 7; outFuelRange[2] = 3;
+  } else {
+    inFuelRange[0] = 0; inFuelRange[1] = 50; inFuelRange[2] = 100;
+    outFuelRange[0] = 37; outFuelRange[1] = 18; outFuelRange[2] = 4;
+  }
+  crc8Calculator.begin();
+}
+
+uint8_t BMWFSeriesCluster::mapGenericGearToLocalGear(GearState inputGear) {
   // The gear that the car is in: 0 = clear, 1-9 = M1-M9, 10 = P, 11 = R, 12 = N, 13 = D
 
   switch(inputGear) {
@@ -31,7 +41,7 @@ uint8_t mapGenericGearToLocalGear(GearState inputGear) {
   }
 }
 
-int mapSpeed(GameState& game) {
+int BMWFSeriesCluster::mapSpeed(GameState& game) {
   int scaledSpeed = game.speed * game.configuration.speedCorrectionFactor;
   if (scaledSpeed > game.configuration.maximumSpeedValue) {
     return game.configuration.maximumSpeedValue;
@@ -40,7 +50,7 @@ int mapSpeed(GameState& game) {
   }
 }
 
-int mapRPM(GameState& game) {
+int BMWFSeriesCluster::mapRPM(GameState& game) {
   int scaledRPM = game.rpm * game.configuration.speedCorrectionFactor;
   if (scaledRPM > game.configuration.maximumRPMValue) {
     return game.configuration.maximumRPMValue;
@@ -49,23 +59,10 @@ int mapRPM(GameState& game) {
   }
 }
 
-int mapCoolantTemperature(GameState& game) {
+int BMWFSeriesCluster::mapCoolantTemperature(GameState& game) {
   if (game.coolantTemperature < game.configuration.minimumCoolantTemperature) { return game.configuration.minimumCoolantTemperature; }
   if (game.coolantTemperature > game.configuration.maximumCoolantTemperature) { return game.configuration.maximumCoolantTemperature; }
   return game.coolantTemperature;
-}
-
-BMWFSeriesCluster::BMWFSeriesCluster(MCP_CAN& CAN, bool isCarMini): CAN(CAN) {
-  this->isCarMini = isCarMini;
-
-  if (isCarMini) {
-    inFuelRange[0] = 0; inFuelRange[1] = 50; inFuelRange[2] = 100;
-    outFuelRange[0] = 22; outFuelRange[1] = 7; outFuelRange[2] = 3;
-  } else {
-    inFuelRange[0] = 0; inFuelRange[1] = 50; inFuelRange[2] = 100;
-    outFuelRange[0] = 37; outFuelRange[1] = 18; outFuelRange[2] = 4;
-  }
-  crc8Calculator.begin();
 }
 
 void BMWFSeriesCluster::updateWithGame(GameState& game) {
