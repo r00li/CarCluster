@@ -1,3 +1,4 @@
+
 # CarCluster
 
 **Control car instrument clusters from your computer for gaming or other purposes using an ESP32.**
@@ -22,7 +23,7 @@ The hardware for this is pretty straightforward. You will need:
  - 12V power supply (doesn't have to be too powerful. But 1A or more is probably what you want)
  - Car instrument cluster supported by this project
  - Some wires, pin headers and other stuff to wire everything together
- - An X9C102 (or two) digital potentiometer plus two 1k ohm resistors (for fuel level simulation - optional)
+ - An X9C102 (or two) digital potentiometer plus two 1k ohm resistors (for fuel level simulation on some clusters - optional)
 
 ### Supported instrument clusters
 Currently fully tested and supported are the following instrument clusters:
@@ -34,7 +35,7 @@ Currently fully tested and supported are the following instrument clusters:
 - BMW 5 Series (F10, BMW F platform)
 - Mini Cooper (third generation, F55/F56/F57, BMW F platform)
 
-This project supports both the older VW PQ platform cars (like the Polo and Superb) and newer VW MQB platform cars. Your best bet is probably the Polo cluster since it has the most features tested and working. MQB clusters are still missing some functionality (mostly various indicators). For both platforms some modifications might be needed based on the specific car model, so if you are unsure, get the specific clusters mentioned here.
+For people just starting I would recommend one of the BMW F series clusters or a VW MQB based cluster. If you want to try other clusters from same platform, they will probably work, but modifications might be needed based on the specific car model. If you are unsure if it will work, get the specific clusters mentioned here.
 
 ***Newer MQB platform clusters like the T-Cross should be avoided**. After some (unknown) time they will enter into component protection mode which will flash the display and make most of the indicators useless. There is no known solution for this as of yet. I highly recommend you stick to older cars like Golf 7.
 
@@ -45,7 +46,7 @@ If you want to use the instrument cluster for gaming then currently supported ar
 
 - Forza Horizon 4 (Horizon 5 should also work, as should Forza Motorsport 7)
 - BeamNG.drive
-- Simhub (not a game but a tool to interface with other games)
+- Simhub (not a game but a tool to interface with other games not on this list)
   
 ## Set it up
 ### Wiring for VW PQ platform cluster
@@ -116,7 +117,7 @@ Connect the CAN bus interface to ESP32 according to this:
 | GND | ESP GND |
 | VCC | ESP VIN | This is the 5V line when ESP is powered from USB |
 
-### Fuel level simulation
+### Fuel level simulation for clusters with analog fuel level indicators
 Most instrument clusters use analog resistance values in order to calculate fuel level. The best way to simulate that is through the use of an X9C102 digital potentiometer. Connect it according to the schematic below. You will need two 1k ohm resistors in addition to the digital potentiometer itself. 
 
 When connecting the digital pot you might find that if you increase the value in the dashboard, the value on the cluster goes down. If this is the case swap connections FS1 and FS2. 
@@ -126,24 +127,20 @@ If your cluster needs two fuel level senders then duplicate the below schematic 
 ![Fuel level simulation](https://github.com/r00li/CarCluster/blob/main/Misc/fuel_simulation.png?raw=true)
 
 ### Install the arduino sketch to the ESP32
-Navigate to the Dashboard Sketches folder of this project and select the sketch for the dashboard that you are using. Download the sketch folder and open it using Arduino IDE (I am using version 2.1.0).
+Navigate to the Dashboard Sketches folder of this project and select the sketch for the dashboard that you are using. Download the sketch folder and open it using Arduino IDE (I am using version 2.3.3).
 
-If you haven't yet installed ESP32 support for Arduino IDE then do so now. Go to Boards Manager and search for esp32 by Espressif Systems. I am using version 2.0.7.
+If you haven't yet installed ESP32 support for Arduino IDE then do so now. Go to Boards Manager and search for esp32 by Espressif Systems. I am using version 3.0.2.
 
-Finally you will need to install a few libraries:
+There is no need to install any additional libraries. All needed libraries are bundled with this project when you download it.
 
- - [mcp_can by coryjfowler](https://github.com/coryjfowler/MCP_CAN_lib) - install through library manager - tested using 1.5.0
- - [ArduinoJson](https://arduinojson.org/) - install through library manager - tested using 6.20.1
- - [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) - install manually by downloading from github and placing it into your arduino IDE libraries folder
- - [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) - install manually by downloading from github and placing it into your arduino IDE libraries folder
- - [ESPDash](https://docs.espdash.pro/) - install through library manager - tested using 4.0.1
- - [X9C10X](https://github.com/RobTillaart/X9C10X) - install through library manager - tested using 0.2.2
- - [WifiManager](https://github.com/tzapu/WiFiManager) - install through library manager - tested using 2.0.16-rc.2
- - [MultiMap](https://github.com/RobTillaart/MultiMap) - Install through library manager - tested using 0.2.0
+Now open the `Carcluster.ino` file (arduino sketch) and look for the header `BEGIN USER CONFIGURATION`. At the minimum you need to select your instrument cluster (for example change `#define  CLUSTER  1` to `#define  CLUSTER  3`  in order to use a Golf 7 cluster). Additionally you might want/need to configure some other parameters in this section, but that will depend on your specific cluster. All parameters should be well documented.
 
 Now that you have done that you can compile and install the sketch to your ESP32. Upon starting the ESP will create a wifi network access point called `CarCluster`. Connect to it using your phone/laptop using the password `carcluster`. After you have done that you can open a web browser (if a popup one doesn't open automatically upon connection) and navigate to `192.168.4.1`. This will bring up WifiManager where you can see the networks around you and connect to the one you want. After you do that your ESP will automatically connect to the network you select unless an error occurs in which case the access point will be created again. If you do not configure the wifi network in 3 minutes the ESP will boot in serial only mode that you can use with Simhub. 
 
-*Note that you might have some trouble uploading the code to the arduino while the CAN interface is connected. If you do, disconnect the CAN interface and try uploading again.*  
+*Note that you might have some trouble uploading the code to the ESP32 while the CAN interface is connected. If you do, disconnect the CAN interface and try uploading again.*  
+
+You can also watch a simple step by step video:
+[![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_install_guide?raw=true )](https://youtu.be/A8SY1PaMTJA) 
 
 ### Use the web interface to test the basic functionality
 
@@ -195,14 +192,6 @@ In the Update messages enter the following code:
      '}\n'
 
 You can now enjoy CarCluster with any game that is supported by Simhub.
-
-### Known issues and limitations
-For the most part everything should work without issues. However there are a few small things still being worked on:
-
-- (PQ46 only) Multifunction menu doesn't work.
-- (PQ46 only) Some warnings will show on start and a steering wheel assist light will be lit up.
-- (MQB only) less important features like ABS/ESP indicators, some menu controls, ... do not work yet.
-- (MQB only) some warning messages regarding assist systems will show up on the display upon first start. Depends on your particular cluster
 
 ## Help and support
 
