@@ -44,7 +44,7 @@ Currently fully tested and supported are the following instrument clusters:
 | Mini Cooper (third generation, F55/F56/F57)|  |  |
 |--|--|--|
 | BMW F |  |  |
-| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f55.jpg?raw=true) |  |  |
+| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f55.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_empty.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_empty.jpg?raw=true) |
 | *Fully supported* | | |
 
 For people just starting I would recommend one of the BMW F series clusters or a VW MQB based cluster. If you want to try other clusters from same platform, they will probably work, but modifications might be needed based on the specific car model. If you are unsure if it will work, get the specific clusters mentioned here.
