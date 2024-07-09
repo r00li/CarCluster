@@ -28,12 +28,24 @@ The hardware for this is pretty straightforward. You will need:
 ### Supported instrument clusters
 Currently fully tested and supported are the following instrument clusters:
 
-- VW Polo 5 (Also known as Polo 6R, PQ25 platform)
-- Škoda Superb 2 (PQ46 platform)
-- VW T-Cross* (MQB platform)
-- VW Golf 7 (MQB platform)
-- BMW 5 Series (F10, BMW F platform)
-- Mini Cooper (third generation, F55/F56/F57, BMW F platform)
+|VW Polo 5| VW Golf 7 | Škoda Superb 2 |
+|--|--|--|
+| PQ35 | MQB | PQ46 |
+| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_polo6r.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_golf7.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_superb2.jpg?raw=true) |
+| *Fully supported* | *Fully supported* | *Mostly works. Menus don't work, some indicators don't work (ABS, ESP)* |
+
+
+|VW T-Cross| BMW 5 Series (F10) | BMW 3 Series (F30) 6WA |
+|--|--|--|
+| MQB | BMW F | BMW F |
+| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_tcross.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f10.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f30.jpg?raw=true) |
+| *Do not use! Cluster with Component protection!* | *Fully supported* | *Fully supported* |
+
+| Mini Cooper (third generation, F55/F56/F57)|  |  |
+|--|--|--|
+| BMW F |  |  |
+| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f55.jpg?raw=true) |  |  |
+| *Fully supported* | | |
 
 For people just starting I would recommend one of the BMW F series clusters or a VW MQB based cluster. If you want to try other clusters from same platform, they will probably work, but modifications might be needed based on the specific car model. If you are unsure if it will work, get the specific clusters mentioned here.
 
@@ -140,7 +152,7 @@ Now that you have done that you can compile and install the sketch to your ESP32
 *Note that you might have some trouble uploading the code to the ESP32 while the CAN interface is connected. If you do, disconnect the CAN interface and try uploading again.*  
 
 You can also watch a simple step by step video:
-[![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_install_guide?raw=true )](https://youtu.be/A8SY1PaMTJA) 
+[![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_install_guide.png?raw=true )](https://youtu.be/A8SY1PaMTJA) 
 
 ### Use the web interface to test the basic functionality
 
