@@ -24,6 +24,7 @@
 // 3 = Golf 7 (VW MQB)
 // 4 = Polo 6R (VW PQ25)
 // 5 = Skoda Superb 2 (VW PQ46)
+// 99 = Golf 7 (VW MQB) - Passthrough mode (if using an external gateway, BCM, ignition lock, ...)
 #define CLUSTER 1
 
 // Configure the maximum RPM value shown on the cluster
@@ -88,7 +89,11 @@
 #define VWPQ_COOLANT_SHORTAGE_PIN 16
 #define VWPQ_OIL_PRESSURE_SWITCH_PIN 15
 #define VWPQ_HANDBRAKE_INDICATOR_PIN 13
-#define VW_PQ_BRAKE_FLUID_WARNING_PIN 22
+#define VWPQ_BRAKE_FLUID_WARNING_PIN 22
+
+// MQB Passthrough specific configuration
+#define VWMQB_PASS_CAN2_CS 17
+#define VWMQB_PASS_CAN2_INT 16
 
 // --------------------------------------------------------------------
 // ------------------------ END USER CONFIGURATION --------------------
@@ -161,12 +166,23 @@ char canRxMsgString[128];  // Array to store serial string
 #elif CLUSTER == 4
   // VW Polo  6R
   #include "src/Clusters/VW_PQ25/VWPQ25Cluster.h"
-  VWPQ25Cluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, VWPQ_SPRINKLER_WATER_SENSOR_PIN, VWPQ_COOLANT_SHORTAGE_PIN, VWPQ_OIL_PRESSURE_SWITCH_PIN, VWPQ_HANDBRAKE_INDICATOR_PIN, VW_PQ_BRAKE_FLUID_WARNING_PIN);
+  VWPQ25Cluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, VWPQ_SPRINKLER_WATER_SENSOR_PIN, VWPQ_COOLANT_SHORTAGE_PIN, VWPQ_OIL_PRESSURE_SWITCH_PIN, VWPQ_HANDBRAKE_INDICATOR_PIN, VWPQ_BRAKE_FLUID_WARNING_PIN);
   ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
 #elif CLUSTER == 5
   // Skoda Superb 2
   #include "src/Clusters/VW_PQ46/VWPQ46Cluster.h"
-  VWPQ46Cluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, VWPQ_SPRINKLER_WATER_SENSOR_PIN, VWPQ_COOLANT_SHORTAGE_PIN, VWPQ_OIL_PRESSURE_SWITCH_PIN, VWPQ_HANDBRAKE_INDICATOR_PIN, VW_PQ_BRAKE_FLUID_WARNING_PIN);
+  VWPQ46Cluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, VWPQ_SPRINKLER_WATER_SENSOR_PIN, VWPQ_COOLANT_SHORTAGE_PIN, VWPQ_OIL_PRESSURE_SWITCH_PIN, VWPQ_HANDBRAKE_INDICATOR_PIN, VWPQ_BRAKE_FLUID_WARNING_PIN);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
+#elif CLUSTER == 99
+  // Golf 7 Passthrough mode
+  MCP_CAN CAN2(VWMQB_PASS_CAN2_CS);  // Set CS pin
+
+  long unsigned int canRxId2;
+  unsigned char canRxLen2 = 0;
+  unsigned char canRxBuf2[8];
+
+  #include "src/Clusters/VW_MQB/VWMQBCluster.h"
+  VWMQBCluster cluster(CAN2, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, true);
   ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
 #endif
 
@@ -222,6 +238,23 @@ START_INIT:
     goto START_INIT;
   }
   CAN.setMode(MCP_NORMAL);
+
+  #if CLUSTER == 99
+    pinMode(VWMQB_PASS_CAN2_INT, INPUT);
+
+    //Begin with CAN Bus 2 Initialization
+START_INIT2:
+    if (CAN_OK == CAN2.begin(MCP_ANY, CAN_500KBPS, MCP_8MHZ))  // init can bus : baudrate = 500k
+    {
+      Serial.println("CAN2 BUS Shield init ok!");
+    } else {
+      Serial.println("CAN2 BUS Shield init fail");
+      Serial.println("Init CAN2 BUS Shield again");
+      delay(100);
+      goto START_INIT2;
+    }
+    CAN2.setMode(MCP_NORMAL);
+  #endif
 }
 
 void loop() {
@@ -305,6 +338,10 @@ void readCanBuffer() {
   if (!digitalRead(CAN_INT)) {                      // If CAN0_INT pin is low, read receive buffer
     CAN.readMsgBuf(&canRxId, &canRxLen, canRxBuf);  // Read data: len = data length, buf = data byte(s)
 
+    #if CLUSTER == 99
+      cluster.handleReceivedData(canRxId, canRxLen, canRxBuf);
+    #endif
+
     // Uncomment if you want to see what is being received on the CAN bus
     /*
     if ((rxId & 0x80000000) == 0x80000000)  // Determine if ID is standard (11 bits) or extended (29 bits)
@@ -327,4 +364,14 @@ void readCanBuffer() {
     Serial.println();
     */
   }
+
+  #if CLUSTER == 99
+    // From cluster to car
+    if (!digitalRead(VWMQB_PASS_CAN2_INT)) {                      // If CAN0_INT pin is low, read receive buffer
+      CAN2.readMsgBuf(&canRxId2, &canRxLen2, canRxBuf2);  // Read data: len = data length, buf = data byte(s)
+
+      // Forward anything that we get back to the car
+      CAN.sendMsgBuf(canRxId2, canRxLen2, canRxBuf2);
+    }
+  #endif
 }

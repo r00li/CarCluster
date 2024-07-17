@@ -7,12 +7,14 @@
 #include "VWMQBCluster.h"
 #include "MQBCRC.h"
 
-VWMQBCluster::VWMQBCluster(MCP_CAN& CAN, int fuelPotIncPin, int fuelPotDirPin, int fuelPot1CsPin, int fuelPot2CsPin): CAN(CAN) {
+VWMQBCluster::VWMQBCluster(MCP_CAN& CAN, int fuelPotIncPin, int fuelPotDirPin, int fuelPot1CsPin, int fuelPot2CsPin, bool passthroughMode): CAN(CAN) {
   fuelPot.begin(fuelPotIncPin, fuelPotDirPin, fuelPot1CsPin);
   fuelPot.setPosition(100, true); // Force the pot to a known value
 
   fuelPot2.begin(fuelPotIncPin, fuelPotDirPin, fuelPot2CsPin);
   fuelPot2.setPosition(100, true); // Force the pot to a known value
+
+  this->passthroughMode = passthroughMode;
 }
 
 void VWMQBCluster::setFuel(GameState& game) {
@@ -83,8 +85,10 @@ void VWMQBCluster::updateWithGame(GameState& game) {
     // This should probably be done using a more sophisticated method like a
     // scheduler, but for now this seems to work.
 
-    sendIgnitionStatus(game.ignition);
-    sendBacklightBrightness(game.backlightBrightness);
+    if (!passthroughMode) {
+      sendIgnitionStatus(game.ignition);
+      sendBacklightBrightness(game.backlightBrightness);
+    }
     sendESP20();
     sendESP21(mapSpeed(game));
     sendTSK07();
@@ -93,7 +97,9 @@ void VWMQBCluster::updateWithGame(GameState& game) {
     sendESP24();
     sendGear(mapGenericGearToLocalGear(game.gear));
     sendAirbag01();
-    sendBlinkers(game.leftTurningIndicator, game.rightTurningIndicator, game.turningIndicatorsBlinking);
+    if (!passthroughMode) {
+      sendBlinkers(game.leftTurningIndicator, game.rightTurningIndicator, game.turningIndicatorsBlinking);
+    }
     sendParkBrake(game.handbrake);
     //sendSWA01();
 
@@ -187,7 +193,10 @@ void VWMQBCluster::sendESP21(int speed) {
 
   CAN.sendMsgBuf(ESP_21_ID, 0, 8, esp21Buf);
   CAN.sendMsgBuf(MOTOR_14_ID, 0, 8, motor14Buf);
-  CAN.sendMsgBuf(GATEWAY_76_ID, 0, 8, gateway76Buf);
+
+  if (!passthroughMode) {
+    CAN.sendMsgBuf(GATEWAY_76_ID, 0, 8, gateway76Buf);
+  }
 }
 
 void VWMQBCluster::sendBacklightBrightness(uint8_t brightness) {
@@ -392,7 +401,9 @@ void VWMQBCluster::sendGear(uint8_t gear) {
 
   CAN.sendMsgBuf(WBA_03_ID, 0, 8, wba03Buf);
 
-  CAN.sendMsgBuf(RKA_01_ID, 0, 8, rka01Buf); // TODO: Importnant for MFSW? Try it
+  if (!passthroughMode) {
+    CAN.sendMsgBuf(RKA_01_ID, 0, 8, rka01Buf); // TODO: Importnant for MFSW? Try it
+  }
 }
 
 void VWMQBCluster::sendAirbag01() {
@@ -576,4 +587,42 @@ void VWMQBCluster::sendTestBuffers() {
   testBuff[6] = 0x09;
   testBuff[7] = 0x00;
   CAN.sendMsgBuf(DATE_ID, 0, 8, testBuff);*/
+}
+
+void VWMQBCluster::handleReceivedData(long unsigned int canRxId, unsigned char canRxLen, unsigned char canRxBuf[]) {
+  if (passthroughMode == false) {
+    return;
+  }
+
+  bool unknownId = false;
+
+  switch (canRxId) {
+    case ESP_20_ID: /*mqbDash.sendESP20();*/ break;
+    case ESP_21_ID: /*mqbDash.sendESP21(speed * speedCorrectionFactor);*/ break;
+    case TSK_07_ID: /*mqbDash.sendTSK07();*/ break;
+    case LH_EPS_01_ID: /*mqbDash.sendLhEPS01();*/ break;
+    case MOTOR_CODE_01_ID: /*mqbDash.sendMotor01();*/ break;
+    case MOTOR_04_ID: /*mqbDash.sendMotor04(rpm*rpmCorrectionFactor);*/ break;
+    case MOTOR_09_ID: /*mqbDash.sendMotor09(coolantTemperature);*/ break;
+    case ESP_24_ID: /*mqbDash.sendESP24();*/ break;
+    case WBA_03_ID: /*mqbDash.sendGear(gear);*/ break;
+    case AIRBAG_01_ID: /*mqbDash.sendAirbag01();*/ break;
+    case TPMS_ID: /*mqbDash.sendTPMS();*/ break;
+    case MOTOR_14_ID: break;
+    //case 0x104: break;
+    case PARKBRAKE_ID: break;
+    //case ESP_05_ID: break; // block only
+    case 0x65a: break; // BCM01 block // gets rid of brake fluid warnings
+    case ESP_10_ID: break; // block
+    case ESP_02_ID: break; // block
+    case MOTOR_18_ID: break;
+    case MOTOR_26_ID: break;
+    case MOTOR_07_ID: break;
+    case OUTDOOR_TEMP_ID: break;
+    case DOOR_STATUS_ID: break;
+    case LICHT_HINTEN_01_ID: break;
+    case LICHT_ANF_ID: break;
+    case LICHT_VORNE_01_ID: break; // Intercept and decode this message to get the steering wheel stalk position
+    default: unknownId = true; CAN.sendMsgBuf(canRxId, canRxLen, canRxBuf); break;
+  }
 }

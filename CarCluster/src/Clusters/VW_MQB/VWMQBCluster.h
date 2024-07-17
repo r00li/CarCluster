@@ -68,16 +68,21 @@ class VWMQBCluster: public Cluster {
     return config;
   }
 
-  VWMQBCluster(MCP_CAN& CAN, int fuelPotIncPin, int fuelPotDirPin, int fuelPot1CsPin, int fuelPot2CsPin);
+  VWMQBCluster(MCP_CAN& CAN, int fuelPotIncPin, int fuelPotDirPin, int fuelPot1CsPin, int fuelPot2CsPin, bool passthroughMode = false);
   void updateWithGame(GameState& game);
   void updateTestBuffer(uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3, uint8_t val4, uint8_t val5, uint8_t val6, uint8_t val7);
   void sendSteeringWheelControls(int button);
   void sendTestBuffers();
 
+  void handleReceivedData(long unsigned int canRxId, unsigned char canRxLen, unsigned char canRxBuf[]);
+
   private:
     MCP_CAN &CAN;
     X9C102 fuelPot = X9C102();
     X9C102 fuelPot2 = X9C102();
+
+    // For passthrough mode
+    bool passthroughMode = false;
 
     unsigned long dashboardUpdateTime50 = 50;
     unsigned long dashboardUpdateTime500 = 500;
