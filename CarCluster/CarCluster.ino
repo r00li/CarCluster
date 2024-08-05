@@ -24,6 +24,7 @@
 // 3 = Golf 7 (VW MQB)
 // 4 = Polo 6R (VW PQ25)
 // 5 = Skoda Superb 2 (VW PQ46)
+// 6 = BNW E60 (BMW E series)
 // 99 = Golf 7 (VW MQB) - Passthrough mode (if using an external gateway, BCM, ignition lock, ...)
 #define CLUSTER 1
 
@@ -94,6 +95,9 @@
 // MQB Passthrough specific configuration
 #define VWMQB_PASS_CAN2_CS 17
 #define VWMQB_PASS_CAN2_INT 16
+
+// BMW E series specific configuration
+#define BMWE_HANDBRAKE_INDICATOR_PIN 13
 
 // --------------------------------------------------------------------
 // ------------------------ END USER CONFIGURATION --------------------
@@ -173,6 +177,11 @@ char canRxMsgString[128];  // Array to store serial string
   #include "src/Clusters/VW_PQ46/VWPQ46Cluster.h"
   VWPQ46Cluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, VWPQ_SPRINKLER_WATER_SENSOR_PIN, VWPQ_COOLANT_SHORTAGE_PIN, VWPQ_OIL_PRESSURE_SWITCH_PIN, VWPQ_HANDBRAKE_INDICATOR_PIN, VWPQ_BRAKE_FLUID_WARNING_PIN);
   ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
+#elif CLUSTER == 6
+  // BMW E60
+  #include "src/Clusters/BMW_E/BMWESeriesCluster.h"
+  BMWESeriesCluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, BMWE_HANDBRAKE_INDICATOR_PIN);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
 #elif CLUSTER == 99
   // Golf 7 Passthrough mode
   MCP_CAN CAN2(VWMQB_PASS_CAN2_CS);  // Set CS pin
@@ -225,10 +234,16 @@ void setup() {
   #endif
 
   simhubGame.begin();
+  
+  #if CLUSTER == 6
+    INT8U canSpeed = CAN_100KBPS;
+  #else
+    INT8U canSpeed = CAN_500KBPS;
+  #endif
 
   //Begin with CAN Bus Initialization
 START_INIT:
-  if (CAN_OK == CAN.begin(MCP_ANY, CAN_500KBPS, MCP_8MHZ))  // init can bus : baudrate = 500k
+  if (CAN_OK == CAN.begin(MCP_ANY, canSpeed, MCP_8MHZ))  // init can bus
   {
     Serial.println("CAN BUS Shield init ok!");
   } else {
@@ -244,7 +259,7 @@ START_INIT:
 
     //Begin with CAN Bus 2 Initialization
 START_INIT2:
-    if (CAN_OK == CAN2.begin(MCP_ANY, CAN_500KBPS, MCP_8MHZ))  // init can bus : baudrate = 500k
+    if (CAN_OK == CAN2.begin(MCP_ANY, canSpeed, MCP_8MHZ))  // init can bus
     {
       Serial.println("CAN2 BUS Shield init ok!");
     } else {

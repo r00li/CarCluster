@@ -1,4 +1,3 @@
-
 # CarCluster
 
 **Control car instrument clusters from your computer for gaming or other purposes using an ESP32.**
@@ -41,11 +40,11 @@ Currently fully tested and supported are the following instrument clusters:
 | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_tcross.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f10.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f30.jpg?raw=true) |
 | *Do not use! Cluster with Component protection!* | *Fully supported* | *Fully supported* |
 
-| Mini Cooper (third generation, F55/F56/F57)|  |  |
+| Mini Cooper (third generation, F55/F56/F57)| BMW 5 Series (E60) |  |
 |--|--|--|
-| BMW F |  |  |
-| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f55.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_empty.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_empty.jpg?raw=true) |
-| *Fully supported* | | |
+| BMW F | BMW E |  |
+| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f55.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_e60.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_empty.jpg?raw=true) |
+| *Fully supported* | *Mostly supported - WIP - no fuel sim, only some indicators* | |
 
 For people just starting I would recommend one of the BMW F series clusters or a VW MQB based cluster. If you want to try other clusters from same platform, they will probably work, but modifications might be needed based on the specific car model. If you are unsure if it will work, get the specific clusters mentioned here.
 
@@ -116,6 +115,26 @@ Below is the connector pinout for the BMW F10 instrument cluster:
 | 6 | CAN H (connect to your can bus interface) |
 | 12 | CAN L (connect to your can bus interface) |
 
+### Wiring for BMW E60 cluster
+Below is the connector pinout for the BMW E60 instrument cluster:
+![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout_bmw_e.jpg?raw=true)
+
+| Cluster pin | Connect to | Comment |
+|--|--|--|
+| 9 | +12V |
+| 4, 5 | Through a NTC | Optional: outside temperature sensor |
+| 18 | GND (12V power supply) |
+| 11, 12 | +12V | To get rid of washer fluid, coolant lights |
+| 6 | CAN H (connect to your can bus interface) |
+| 7 | CAN L (connect to your can bus interface) |
+| 2, 15 | Fuel sim A | Pair A for fuel simulation. Wire a 220ohm R between.
+| 3, 16 | Fuel sim B | Pair B for fuel simulation. Wire a 220ohm R between.
+| 13 | ESP pin D13 | Parking brake simulation
+
+Note that currently only static fuel is supported (using the above wiring). Wiring two 220 ohm resistors between each pair will give you about half a fuel tank. Increase the resistance to get more fuel. Proper simulation is work in progress. 
+
+For parking brake simulation to work you need to wire ESP GND to 12V power supply GND.
+
 ### Other wiring
 
 Connect the CAN bus interface to ESP32 according to this:
@@ -139,7 +158,7 @@ If your cluster needs two fuel level senders then duplicate the below schematic 
 ![Fuel level simulation](https://github.com/r00li/CarCluster/blob/main/Misc/fuel_simulation.png?raw=true)
 
 ### Install the arduino sketch to the ESP32
-Navigate to the Dashboard Sketches folder of this project and select the sketch for the dashboard that you are using. Download the sketch folder and open it using Arduino IDE (I am using version 2.3.3).
+Download the project and open it using Arduino IDE (I am using version 2.3.3).
 
 If you haven't yet installed ESP32 support for Arduino IDE then do so now. Go to Boards Manager and search for esp32 by Espressif Systems. I am using version 3.0.2.
 
@@ -217,6 +236,7 @@ This project would not be possible without various people sharing their knowledg
 - [Leon Bataille](https://hackaday.io/Lebata30) for posting his initial Polo cluster work on Hackaday. The Polo instrument cluster sketch for this project is based on his work
 - [Ronaldo Cordeiro](https://github.com/ronaldocordeiro) for providing information (including sample code) for MQB cluster integration
 - [Ross-tech forum user jyoung8607](https://forums.ross-tech.com/index.php?members/208/) for providing CAN scans of various cars used in this project
+- [Marcin Jakubowski](https://github.com/Marcin648) for his work on BMW E90 cluster that was useful when implementng the BMW E series sketch
 
 ## License
 
