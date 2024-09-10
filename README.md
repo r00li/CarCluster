@@ -206,7 +206,6 @@ In order to set this up you will first need to [enable custom serial devices plu
 
 In the Update messages enter the following code:
 
-```json
      '{"action":10' +
      ', "spe":' + truncate(format([SpeedKmh], 0)) + 
      ', "gea":"' + isnull([Gear], 'P') + '"' +
@@ -222,7 +221,6 @@ In the Update messages enter the following code:
      ', "abs":' + isnull([ABSActive], 0) +
      ', "tra":' + isnull([TCActive], 0) +
      '}\n'
-```
 
 You can now enjoy CarCluster with any game that is supported by Simhub.
 
@@ -236,27 +234,27 @@ There are also optional keys that you can use in the update messages to control 
 
 Below is an example of the configuration you might use for Euro Truck Simulator 2.
 
-```json
- '{"action":10' +
- ', "spe":' + truncate(format([SpeedKmh], 0)) + 
- ', "gea":"' + isnull([Gear], 'P') + '"' +
- ', "rpm":' + truncate(isnull([Rpms], 0)) +
- ', "mrp":' + truncate(isnull([MaxRpm], 8000)) +
- ', "lft":' + isnull([TurnIndicatorLeft], 0) +
- ', "rit":' + isnull([TurnIndicatorRight], 0) +
- ', "oit":' + truncate(isnull([OilTemperature], 0)) + 
- ', "pau":' + isnull([DataCorePlugin.GamePaused], 0) +
- ', "run":' + isnull([DataCorePlugin.GameRunning], 0) +
- ', "fue":' + truncate(isnull([DataCorePlugin.GameData.FuelPercent], 0)) +
- ', "hnb":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.MotorValues.BrakeValues.ParkingBrake]/1, 0) +
- ', "abs":' + isnull([ABSActive], 0) +
- ', "tra":' + isnull([TCActive], 0) +
- ', "mnl":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.LightsValues.BeamLow]/1, 0) +
- ', "hbl":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.LightsValues.BeamHigh]/1, 0) +
-  ', "ffl":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.LightsValues.Parking]/1, 0) +
-  ', "ign":' + isnull([DataCorePlugin.GameData.EngineIgnitionOn], 0) +
- '}\n'
-```
+
+     '{"action":10' +
+     ', "spe":' + truncate(format([SpeedKmh], 0)) + 
+     ', "gea":"' + isnull([Gear], 'P') + '"' +
+     ', "rpm":' + truncate(isnull([Rpms], 0)) +
+     ', "mrp":' + truncate(isnull([MaxRpm], 8000)) +
+     ', "lft":' + isnull([TurnIndicatorLeft], 0) +
+     ', "rit":' + isnull([TurnIndicatorRight], 0) +
+     ', "oit":' + truncate(isnull([OilTemperature], 0)) + 
+     ', "pau":' + isnull([DataCorePlugin.GamePaused], 0) +
+     ', "run":' + isnull([DataCorePlugin.GameRunning], 0) +
+     ', "fue":' + truncate(isnull([DataCorePlugin.GameData.FuelPercent], 0)) +
+     ', "hnb":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.MotorValues.BrakeValues.ParkingBrake]/1, 0) +
+     ', "abs":' + isnull([ABSActive], 0) +
+     ', "tra":' + isnull([TCActive], 0) +
+     ', "mnl":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.LightsValues.BeamLow]/1, 0) +
+     ', "hbl":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.LightsValues.BeamHigh]/1, 0) +
+     ', "ffl":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.LightsValues.Parking]/1, 0) +
+     ', "ign":' + isnull([DataCorePlugin.GameData.EngineIgnitionOn], 0) +
+     '}\n'
+
 
 
 ## Help and support
