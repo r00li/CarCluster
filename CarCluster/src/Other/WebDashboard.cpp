@@ -26,6 +26,7 @@ WebDashboard::WebDashboard(GameState &game, int serverPort, unsigned long webDas
   gearCard(&dashboard, SLIDER_CARD, "Selected gear", "", 1, 15),
   backlightCard(&dashboard, SLIDER_CARD, "Backlight brightness", "%", 0, 100),
   coolantTemperatureCard(&dashboard, SLIDER_CARD, "Coolant temperature", "C", gameState.configuration.minimumCoolantTemperature, gameState.configuration.maximumCoolantTemperature),
+  oilTemperatureCard(&dashboard, SLIDER_CARD, "Oil Temperature", "C", 49, 193),
   handbrakeCard(&dashboard, BUTTON_CARD, "Handbrake"),
   button1Card(&dashboard, BUTTON_CARD, "Steering button 1"),
   button2Card(&dashboard, BUTTON_CARD, "Steering button 2"),
@@ -126,6 +127,12 @@ void WebDashboard::begin() {
   coolantTemperatureCard.attachCallback([&](int value) {
     gameState.coolantTemperature = value;
     coolantTemperatureCard.update(value);
+    dashboard.sendUpdates();
+  });
+
+  oilTemperatureCard.attachCallback([&](int value) {
+    gameState.oilTemperature = value;
+    oilTemperatureCard.update(value);
     dashboard.sendUpdates();
   });
 
@@ -249,6 +256,7 @@ void WebDashboard::update() {
     gearCard.update(gameState.gear);
     backlightCard.update(gameState.backlightBrightness);
     coolantTemperatureCard.update(gameState.coolantTemperature);
+    oilTemperatureCard.update(gameState.oilTemperature);
     handbrakeCard.update(gameState.handbrake);
     ignitionCard.update(gameState.ignition);
     driveModeCard.update(gameState.driveMode);
