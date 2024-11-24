@@ -15,8 +15,13 @@ Here are a few demo videos of various instrument clusters in action:
 | VW PQ | VW MQB | BMW F |
 
 ## What do I need?
-The hardware for this is pretty straightforward. You will need:
+The hardware for this is pretty straightforward. From active electronics you will need:
 
+|ESP32 board| CAN interface | 12V PSU |
+|--|--|--|
+| ![](https://github.com/r00li/CarCluster/blob/main/Misc/supplies_esp32_board.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/supplies_mcp_board.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/supplies_12v_psu.jpg?raw=true) |
+
+Or in a bit more details:
  - ESP32 board (I am using a generic Devkit V1 board - available from ebay for around 10€)
  - MCP2515 CAN bus module (I am using a generic one from ebay - available for around 5€)
  - 12V power supply (doesn't have to be too powerful. But 1A or more is probably what you want)
@@ -32,7 +37,6 @@ Currently fully tested and supported are the following instrument clusters:
 | PQ35 | MQB | PQ46 |
 | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_polo6r.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_golf7.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_superb2.jpg?raw=true) |
 | *Fully supported* | *Fully supported* | *Mostly works. Menus don't work, some indicators don't work (ABS, ESP)* |
-
 
 |VW T-Cross| BMW 5 Series (F10) | BMW 3 Series (F30) 6WA |
 |--|--|--|
@@ -60,102 +64,22 @@ If you want to use the instrument cluster for gaming then currently supported ar
 - Simhub (not a game but a tool to interface with other games not on this list)
   
 ## Set it up
-### Wiring for VW PQ platform cluster
-Below is the connector pinout for the Polo 6R instrument cluster:
-![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout.jpg?raw=true)
-You can also see my improvised connector. Just two rows of standard 2.54mm female pin headers glued together. If you can I would suggest you get a cluster that comes with it's original connector.
+### Wiring the main ESP32 board and CAN interface
+For wiring you have two options that you can choose. Click on the links below for details:
 
-Wire everything according to the tables below:
+- [Wiring using the dedicated CarCluster PCB](PCB/README.md)
+- [Wiring by using jumper wires/breadboards](Misc/README_WIRING_JUMPERS.md)
 
-| Cluster pin | Connect to | Comment |
-|--|--|--|
-| 31, 32 | +12V |
-| 16 | GND (12V power supply) |
-| 20 | GND (ESP) |
-| 28 | CAN H (connect to your can bus interface) |
-| 29 | CAN L (connect to your can bus interface) |
-| 27 | ESP pin D15 | Oil pressure switch |
-| 17 | ESP pin D4 | Sprinkler water level sensor |
-| 18 | ESP pin D16 | Coolant shortage indicator |
-| 1 | Digital Pot FS1 | Fuel level indicator pin 1 |
-| 2 | Digital Pot FS2 | Fuel level indicator pin 2 |
-| 3 | Digital Pot FS3 | Fuel level indicator 2 pin 1 (some clusters) |
-| 4 | Digital Pot FS4 | Fuel level indicator 2 pin 2  (some clusters) |
-| 25 | ESP pin D13 | Handbrake indicator |
-| 26 | ESP pin D22 | Brake fluid warning (PQ46 only) |
-| 21 | Through a push button to ESP GND | Optional: Trip computer menu up |
-| 22 | Through a push button to ESP GND | Optional: Trip computer menu set/reset |
-| 23 | Through a push button to ESP GND | Optional: Trip computer menu down |
-| 19 | Through a NTC (10k?) | Optional: outside temperature sensor |
+For easier wiring I have created a simple breakout PCB that you can use. Simply order the PCBs, solder on some headers and screw terminals, plug in your CAN interface and enjoy. See the link above for more details.
 
-### Wiring for VW MQB platform cluster
-Below is the connector pinout for the VW T-Cross instrument cluster:
-![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout_mqb.jpg?raw=true)
+![Finished PCB](https://github.com/r00li/CarCluster/blob/main/PCB/pcb_finished.jpg?raw=true)
 
-| Cluster pin | Connect to | Comment |
-|--|--|--|
-| 1 | +12V |
-| 10 | GND (12V power supply) |
-| 18 | CAN H (connect to your can bus interface) |
-| 17 | CAN L (connect to your can bus interface) |
-| 11 | ESP/Digital Pot GND | Fuel level indicator GND |
-| 14 | Digital Pot FS1 | Fuel level indicator pin 1 |
-| 25 | Digital Pot FS2 | Fuel level indicator pin 2 |
+### Wiring your cluster
 
-### Wiring for BMW F series cluster
-Below is the connector pinout for the BMW F10 instrument cluster:
-![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout_bmw_f.jpg?raw=true)
-
-| Cluster pin | Connect to | Comment |
-|--|--|--|
-| 1, 2 | +12V |
-| 4, 5 | Through a NTC (10k?) | Optional: outside temperature sensor |
-| 7, 8 | GND (12V power supply) |
-| 11 | +12V | Wakeup signal |
-| 6 | CAN H (connect to your can bus interface) |
-| 12 | CAN L (connect to your can bus interface) |
-
-### Wiring for BMW E60 cluster
-Below is the connector pinout for the BMW E60 instrument cluster:
-![Pinout indication](https://github.com/r00li/CarCluster/blob/main/Misc/pinout_bmw_e.jpg?raw=true)
-
-| Cluster pin | Connect to | Comment |
-|--|--|--|
-| 9 | +12V |
-| 4, 5 | Through a NTC | Optional: outside temperature sensor |
-| 18 | GND (12V power supply) |
-| 11, 12 | +12V | To get rid of washer fluid, coolant lights |
-| 6 | CAN H (connect to your can bus interface) |
-| 7 | CAN L (connect to your can bus interface) |
-| 2, 15 | Fuel sim A | Pair A for fuel simulation. Wire a 220ohm R between.
-| 3, 16 | Fuel sim B | Pair B for fuel simulation. Wire a 220ohm R between.
-| 13 | ESP pin D13 | Parking brake simulation
-
-Note that currently only static fuel is supported (using the above wiring). Wiring two 220 ohm resistors between each pair will give you about half a fuel tank. Increase the resistance to get more fuel. Proper simulation is work in progress. 
-
-For parking brake simulation to work you need to wire ESP GND to 12V power supply GND.
-
-### Other wiring
-
-Connect the CAN bus interface to ESP32 according to this:
-| Can bus interface pin | Connect to | Comment |
-|--|--|--|
-| INT | ESP Pin D2 |
-| CS | ESP Pin D5 |
-| SCK | ESP Pin D18 |
-| MISO | ESP Pin D19 |
-| MOSI | ESP Pin 23 |
-| GND | ESP GND |
-| VCC | ESP VIN | This is the 5V line when ESP is powered from USB |
-
-### Fuel level simulation for clusters with analog fuel level indicators
-Most instrument clusters use analog resistance values in order to calculate fuel level. The best way to simulate that is through the use of an X9C102 digital potentiometer. Connect it according to the schematic below. You will need two 1k ohm resistors in addition to the digital potentiometer itself. 
-
-When connecting the digital pot you might find that if you increase the value in the dashboard, the value on the cluster goes down. If this is the case swap connections FS1 and FS2. 
-
-If your cluster needs two fuel level senders then duplicate the below schematic (two digital pots). Replace FS1 and FS2 connections with FS3 and FS4, connect the CS pin of the second digital pot to ESP pin D33. Keep other connections the same.
-
-![Fuel level simulation](https://github.com/r00li/CarCluster/blob/main/Misc/fuel_simulation.png?raw=true)
+- [Wiring for VW PQ platform cluster](Misc/README_WIRING_VW_PQ.md)
+- [Wiring for VW MQB platform cluster](Misc/README_WIRING_VW_MQB.md)
+- [Wiring for BMW F series cluster](Misc/README_WIRING_BMW_F.md)
+- [Wiring for BMW E60 cluster](Misc/README_WIRING_BMW_E60.md)
 
 ### Install the arduino sketch to the ESP32
 Download the project and open it using Arduino IDE (I am using version 2.3.3).
