@@ -19,7 +19,7 @@ The hardware for this is pretty straightforward. From active electronics you wil
 
 |ESP32 board| CAN interface | 12V PSU |
 |--|--|--|
-| ![](https://github.com/r00li/CarCluster/blob/main/Misc/supplies_esp32_board.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/supplies_mcp_board.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/supplies_12v_psu.jpg?raw=true) |
+| ![](https://github.com/r00li/CarCluster/blob/main/Misc/supplies_esp32_board.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/supplies_mcp_board.jpeg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/supplies_12v_psu.jpeg?raw=true) |
 
 Or in a bit more details:
  - ESP32 board (I am using a generic Devkit V1 board - available from ebay for around 10€)
