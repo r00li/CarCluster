@@ -42,4 +42,11 @@ void SimhubGame::decodeSerialData(JsonDocument& doc) {
   gameState.handbrake = doc["hnb"];
   gameState.absLight = doc["abs"];
   gameState.offroadLight = doc["tra"];
+  gameState.mainLights = doc["mnl"];
+  gameState.highBeam = doc["hbl"];
+  gameState.frontFogLight = doc["ffl"];
+  gameState.rearFogLight = doc["rfl"];
+  gameState.ignition = doc["ign"];
+  gameState.outdoorTemperature = doc["odt"];
+  gameState.backlightBrightness = doc["bri"];
 }
