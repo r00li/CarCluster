@@ -52,7 +52,7 @@ Currently fully tested and supported are the following instrument clusters:
 
 For people just starting I would recommend one of the BMW F series clusters or a VW MQB based cluster. If you want to try other clusters from same platform, they will probably work, but modifications might be needed based on the specific car model. If you are unsure if it will work, get the specific clusters mentioned here.
 
-***Newer MQB platform clusters like the T-Cross should be avoided**. After some (unknown) time they will enter into component protection mode which will flash the display and make most of the indicators useless. There is no known solution for this as of yet. I highly recommend you stick to older cars like Golf 7.
+**Newer MQB platform clusters like the T-Cross should be avoided**. After some (unknown) time they will enter into component protection mode which will flash the display and make most of the indicators useless. There is no known solution for this as of yet. I highly recommend you stick to older cars like Golf 7.
 
 You can get these clusters from ebay, your local scrapyard, or if you are in EU: [rrr.lt](rrr.lt/) . No matter where you get them, they should cost you around 50€.
 
@@ -85,6 +85,8 @@ For easier wiring I have created a simple breakout PCB that you can use. Simply 
 Download the project and open it using Arduino IDE (I am using version 2.3.3).
 
 If you haven't yet installed ESP32 support for Arduino IDE then do so now. Go to Boards Manager and search for esp32 by Espressif Systems. I am using version 3.0.2.
+
+**Please use arduino ESP32 core versions lower than 3.1.x until further notice as there is an issue with one of the included libraries that prevents the ESP from booting up with wifi enabled. Just install the latest 3.0.x version. Alternatively you can use it with wifi disabled, which should also work.**
 
 There is no need to install any additional libraries. All needed libraries are bundled with this project when you download it.
 
