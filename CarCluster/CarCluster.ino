@@ -25,6 +25,7 @@
 // 4 = Polo 6R (VW PQ25)
 // 5 = Skoda Superb 2 (VW PQ46)
 // 6 = BNW E60 (BMW E series)
+// 7 = BMW E46
 // 99 = Golf 7 (VW MQB) - Passthrough mode (if using an external gateway, BCM, ignition lock, ...)
 #define CLUSTER 1
 
@@ -78,11 +79,12 @@
 #define ANALOG_FUEL_POT_CS2 33
 //
 // CONFIGURATION OF MINIMUM AND MAXIMUM VALUES:
-// Depends on speicific sluter. If fuel percentage indicated on your cluster is wrong, change these values
-#define ANALOG_FUEL_POT_MINIMUM_VALUE 18
-#define ANALOG_FUEL_POT_MAXIMUM_VALUE 83
-#define ANALOG_FUEL_POT_MINIMUM_VALUE2 17
-#define ANALOG_FUEL_POT_MAXIMUM_VALUE2 75
+// Depends on specific sluter. If fuel percentage indicated on your cluster is wrong, change these values
+// Leave at -1 for using the defaults based on the cluster.
+#define ANALOG_FUEL_POT_MINIMUM_VALUE -1
+#define ANALOG_FUEL_POT_MAXIMUM_VALUE -1
+#define ANALOG_FUEL_POT_MINIMUM_VALUE2 -1
+#define ANALOG_FUEL_POT_MAXIMUM_VALUE2 -1
 
 // VW PQ specific pin configuration (for various non CAN based values)
 // If you are not using VW PQ based instrument cluster leave this alone
@@ -96,8 +98,13 @@
 #define VWMQB_PASS_CAN2_CS 17
 #define VWMQB_PASS_CAN2_INT 16
 
-// BMW E series specific configuration
+// BMW E series specific configuration (E46 too)
 #define BMWE_HANDBRAKE_INDICATOR_PIN 13
+
+// BMW E46 specific configuration
+#define BMWE46_SPEED_PIN 22
+#define BMWE46_ABS_PIN 21
+#define BMWE46_FAKE_CONSUMPTION true // Show faked consumption based on RPM (we do not have injector timing data)
 
 // --------------------------------------------------------------------
 // ------------------------ END USER CONFIGURATION --------------------
@@ -181,6 +188,11 @@ char canRxMsgString[128];  // Array to store serial string
   // BMW E60
   #include "src/Clusters/BMW_E/BMWESeriesCluster.h"
   BMWESeriesCluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, BMWE_HANDBRAKE_INDICATOR_PIN);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
+#elif CLUSTER == 7
+  // BMW E46
+  #include "src/Clusters/BMW_E46/BMWE46Cluster.h"
+  BMWE46Cluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, BMWE_HANDBRAKE_INDICATOR_PIN, BMWE46_SPEED_PIN, BMWE46_ABS_PIN, BMWE46_FAKE_CONSUMPTION);
   ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
 #elif CLUSTER == 99
   // Golf 7 Passthrough mode
