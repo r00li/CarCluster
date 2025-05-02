@@ -28,6 +28,7 @@ Or in a bit more details:
  - Car instrument cluster supported by this project
  - Some wires, pin headers and other stuff to wire everything together
  - An X9C102 (or two) digital potentiometer plus two 1k ohm resistors (for fuel level simulation on some clusters - optional)
+ - A Logic Level Shifter (if using E46 cluster)
 
 ### Supported instrument clusters
 Currently fully tested and supported are the following instrument clusters:
@@ -44,11 +45,11 @@ Currently fully tested and supported are the following instrument clusters:
 | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_tcross.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f10.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f30.jpg?raw=true) |
 | *Do not use! Cluster with Component protection!* | *Fully supported* | *Fully supported* |
 
-| Mini Cooper (third generation, F55/F56/F57)| BMW 5 Series (E60) |  |
+| Mini Cooper (third generation, F55/F56/F57)| BMW 5 Series (E60) |  BMW 3 Series (E46) |
 |--|--|--|
-| BMW F | BMW E |  |
-| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f55.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_e60.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_empty.jpg?raw=true) |
-| *Fully supported* | *Mostly supported - WIP - no fuel sim, only some indicators* | |
+| BMW F | BMW E |  BMW E46 |
+| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f55.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_e60.jpg?raw=true) | ![](Misc/cluster_images/cluster_e46.jpg) |
+| *Fully supported* | *Mostly supported - WIP - no fuel sim, only some indicators* | *Fully supported - needs specific connections, see wiring* |
 
 For people just starting I would recommend one of the BMW F series clusters or a VW MQB based cluster. If you want to try other clusters from same platform, they will probably work, but modifications might be needed based on the specific car model. If you are unsure if it will work, get the specific clusters mentioned here.
 
@@ -80,6 +81,7 @@ For easier wiring I have created a simple breakout PCB that you can use. Simply 
 - [Wiring for VW MQB platform cluster](Misc/README_WIRING_VW_MQB.md)
 - [Wiring for BMW F series cluster](Misc/README_WIRING_BMW_F.md)
 - [Wiring for BMW E60 cluster](Misc/README_WIRING_BMW_E60.md)
+- [Wiring for BMW E46 cluster](Misc/README_WIRING_BMW_E46.md)
 
 ### Install the arduino sketch to the ESP32
 Download the project and open it using Arduino IDE (I am using version 2.3.3).
