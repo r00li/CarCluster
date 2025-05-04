@@ -134,7 +134,7 @@ class VWMQBCluster: public Cluster {
     void sendESP21(int speed);
     void sendTSK07();
     void sendLhEPS01();
-    void sendMotor(int rpm, int coolantTemperature);
+    void sendMotor(int rpm, int coolantTemperature, int oilTemperature);
     void sendESP24();
     void sendGear(uint8_t gear);
     void sendAirbag01();
