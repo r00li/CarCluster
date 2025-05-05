@@ -152,6 +152,39 @@ In the Update messages enter the following code:
 
 You can now enjoy CarCluster with any game that is supported by Simhub.
 
+
+### Other Simhub configuration options
+There are also optional keys that you can use in the update messages to control the dashboard. These are:
+- `mnl`: Controls the main beam signal.
+- `hbl`: Controls the high beam signal.
+- `ffl`: Controls the front fog light signal.
+- `ign`: Controls the ignition signal.
+
+Below is an example of the configuration you might use for Euro Truck Simulator 2.
+
+
+     '{"action":10' +
+     ', "spe":' + truncate(format([SpeedKmh], 0)) + 
+     ', "gea":"' + isnull([Gear], 'P') + '"' +
+     ', "rpm":' + truncate(isnull([Rpms], 0)) +
+     ', "mrp":' + truncate(isnull([MaxRpm], 8000)) +
+     ', "lft":' + isnull([TurnIndicatorLeft], 0) +
+     ', "rit":' + isnull([TurnIndicatorRight], 0) +
+     ', "oit":' + truncate(isnull([OilTemperature], 0)) + 
+     ', "pau":' + isnull([DataCorePlugin.GamePaused], 0) +
+     ', "run":' + isnull([DataCorePlugin.GameRunning], 0) +
+     ', "fue":' + truncate(isnull([DataCorePlugin.GameData.FuelPercent], 0)) +
+     ', "hnb":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.MotorValues.BrakeValues.ParkingBrake]/1, 0) +
+     ', "abs":' + isnull([ABSActive], 0) +
+     ', "tra":' + isnull([TCActive], 0) +
+     ', "mnl":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.LightsValues.BeamLow]/1, 0) +
+     ', "hbl":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.LightsValues.BeamHigh]/1, 0) +
+     ', "ffl":' + isnull([DataCorePlugin.GameRawData.TruckValues.CurrentValues.LightsValues.Parking]/1, 0) +
+     ', "ign":' + isnull([DataCorePlugin.GameData.EngineIgnitionOn], 0) +
+     '}\n'
+
+
+
 ## Help and support
 
 If you need help with anything contact me through github (open an issue here). You can also check my website for other contact information: http://www.r00li.com .
