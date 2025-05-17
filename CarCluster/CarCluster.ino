@@ -95,8 +95,8 @@
 #define VWPQ_BRAKE_FLUID_WARNING_PIN 22
 
 // MQB Passthrough specific configuration
-#define VWMQB_PASS_CAN2_CS 17
-#define VWMQB_PASS_CAN2_INT 16
+#define VWMQB_PASS_CAN2_CS 25
+#define VWMQB_PASS_CAN2_INT 27
 
 // BMW E series specific configuration (E46 too)
 #define BMWE_HANDBRAKE_INDICATOR_PIN 13
@@ -371,20 +371,20 @@ void readCanBuffer() {
 
     // Uncomment if you want to see what is being received on the CAN bus
     /*
-    if ((rxId & 0x80000000) == 0x80000000)  // Determine if ID is standard (11 bits) or extended (29 bits)
-      sprintf(msgString, "Extended ID: 0x%.8lX  DLC: %1d  Data:", (rxId & 0x1FFFFFFF), len);
+    if ((canRxId & 0x80000000) == 0x80000000)  // Determine if ID is standard (11 bits) or extended (29 bits)
+      sprintf(canRxMsgString, "Extended ID: 0x%.8lX  DLC: %1d  Data:", (canRxId & 0x1FFFFFFF), canRxLen);
     else
-      sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, len);
+      sprintf(canRxMsgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", canRxId, canRxLen);
 
-    Serial.print(msgString);
+    Serial.print(canRxMsgString);
 
-    if ((rxId & 0x40000000) == 0x40000000) {  // Determine if message is a remote request frame.
-      sprintf(msgString, " REMOTE REQUEST FRAME");
-      Serial.print(msgString);
+    if ((canRxId & 0x40000000) == 0x40000000) {  // Determine if message is a remote request frame.
+      sprintf(canRxMsgString, " REMOTE REQUEST FRAME");
+      Serial.print(canRxMsgString);
     } else {
-      for (byte i = 0; i < len; i++) {
-        sprintf(msgString, " 0x%.2X", rxBuf[i]);
-        Serial.print(msgString);
+      for (byte i = 0; i < canRxLen; i++) {
+        sprintf(canRxMsgString, " 0x%.2X", canRxBuf[i]);
+        Serial.print(canRxMsgString);
       }
     }
 
