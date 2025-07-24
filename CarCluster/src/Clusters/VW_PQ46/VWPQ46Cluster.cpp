@@ -105,7 +105,8 @@ void VWPQ46Cluster::updateWithGame(GameState& game) {
     // scheduler, but for now this seems to work.
 
     sendImmobilizer();
-    sendIndicators(game.leftTurningIndicator, game.rightTurningIndicator, game.turningIndicatorsBlinking, game.mainLights, game.highBeam, game.frontFogLight, game.rearFogLight, game.batteryLight, false, game.doorOpen, game.backlightBrightness);
+    sendIndicators(game.leftTurningIndicator, game.rightTurningIndicator, game.turningIndicatorsBlinking, game.mainLights, game.highBeam, game.frontFogLight, game.rearFogLight, game.batteryLight, false, game.doorOpen);
+    sendBacklightBrightness(game.backlightBrightness);
     sendDieselEngine();
     sendRPM(mapRPM(game));
     sendSpeed(mapSpeed(game), false, game.offroadLight, game.absLight);
@@ -141,7 +142,7 @@ void VWPQ46Cluster::sendImmobilizer() {
   CAN.sendMsgBuf(IMMOBILIZER_ID, 0, 8, immobilizerBuffer);
 }
 
-void VWPQ46Cluster::sendIndicators(boolean leftBlinker, boolean rightBlinker, boolean blinkersBlinking, boolean daylightBeam, boolean highBeam, boolean frontFogLight, boolean rearFogLight, boolean batteryWarning, boolean trunkOpen, boolean doorOpen, int brightness) {
+void VWPQ46Cluster::sendIndicators(boolean leftBlinker, boolean rightBlinker, boolean blinkersBlinking, boolean daylightBeam, boolean highBeam, boolean frontFogLight, boolean rearFogLight, boolean batteryWarning, boolean trunkOpen, boolean doorOpen) {
   uint8_t temp_turning_lights = 0 | leftBlinker | (rightBlinker << 1);
   if (blinkersBlinking == true) {
     turning_lights_counter = turning_lights_counter + 1;
@@ -171,6 +172,13 @@ void VWPQ46Cluster::sendIndicators(boolean leftBlinker, boolean rightBlinker, bo
   lightsBuffer[2] = temp_turning_lights;
   //CanSend(0x531, speed, 0x00, temp_turning_lights, 0x00, 0x00, 0x00, 0x00, 0x00);
   CAN.sendMsgBuf(LIGHTS_ID, 0, 8, lightsBuffer);
+}
+
+void VWPQ46Cluster::sendBacklightBrightness(uint8_t brightness) {
+  dimmungBuffer[0] = brightness & 0x7F; // Screen brightness
+  dimmungBuffer[1] = brightness & 0x7F; // Switch brightness
+  CAN.sendMsgBuf(DIMMUNG_ID, 0, 3, dimmungBuffer);
+  // Screen and switch brightness set the same.
 }
 
 void VWPQ46Cluster::sendDieselEngine() {

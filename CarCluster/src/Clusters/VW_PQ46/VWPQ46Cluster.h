@@ -23,6 +23,7 @@
 #define AIRBAG_ID 0x050 // Airbag
 #define GEAR_ID 0x540 // Gear shifter
 #define CRUISE_CONTROL_ID 0x288 // Cruise control
+#define DIMMUNG_ID  0x635 // Backlight
 
 class VWPQ46Cluster: public Cluster {
   public:
@@ -75,10 +76,12 @@ class VWPQ46Cluster: public Cluster {
                   airbagBuffer[8] = { 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
                   gearShifterBuffer[8] = { 0x90, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x02, 0x00 },
                   cruiseControlBuffer[8] = { 0x8A, 0xB4, 0x30, 0x00, 0x51, 0x46, 0x9B, 0x09 },
+                  dimmungBuffer[3] = { 0x80, 0x80, 0x00 },
                   testBuff[8] = { 0x04, 0x06, 0x40, 0x00, 0xFF, 0xFE, 0x69, 0x2C };
 
     void sendImmobilizer();
-    void sendIndicators(boolean leftBlinker, boolean rightBlinker, boolean blinkersBlinking, boolean daylightBeam, boolean highBeam, boolean frontFogLight, boolean rearFogLight, boolean batteryWarning, boolean trunkOpen, boolean doorOpen, int brightness);
+    void sendIndicators(boolean leftBlinker, boolean rightBlinker, boolean blinkersBlinking, boolean daylightBeam, boolean highBeam, boolean frontFogLight, boolean rearFogLight, boolean batteryWarning, boolean trunkOpen, boolean doorOpen);
+    void sendBacklightBrightness(uint8_t brightness);
     void sendDieselEngine();
     void sendRPM(int rpm);
     void sendSpeed(int speed, boolean tpmsLight, boolean espLight, boolean absLight);
