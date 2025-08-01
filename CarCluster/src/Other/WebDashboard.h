@@ -53,6 +53,7 @@ class WebDashboard {
     Card gearCard;
     Card backlightCard;
     Card coolantTemperatureCard;
+    Card oilTemperatureCard;
     Card handbrakeCard;
     Card button1Card;
     Card button2Card;

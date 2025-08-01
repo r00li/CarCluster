@@ -111,6 +111,7 @@ class GameState {
   enum GearState gear = GearState_Auto_P;            // The gear that the car is in
   uint8_t backlightBrightness = 100;                 // Backlight brightness 0-99
   int coolantTemperature = 100;                      // Coolant temperature 50-130C
+  int oilTemperature = 80;                           // Oil temperature 50-192C
   bool ignition = true;                              // Ignition status (set to false for accessory)
   int fuelQuantity = 100;                            // Amount of fuel
   int outdoorTemperature = 20;                       // Outdoor temperature (from -50 to 50)

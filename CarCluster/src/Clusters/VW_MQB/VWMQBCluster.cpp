@@ -93,7 +93,7 @@ void VWMQBCluster::updateWithGame(GameState& game) {
     sendESP21(mapSpeed(game));
     sendTSK07();
     sendLhEPS01();
-    sendMotor(mapRPM(game), mapCoolantTemperature(game));
+    sendMotor(mapRPM(game), mapCoolantTemperature(game), game.oilTemperature);
     sendESP24();
     sendGear(mapGenericGearToLocalGear(game.gear));
     sendAirbag01();
@@ -261,7 +261,7 @@ void VWMQBCluster::sendLhEPS01() {
   CAN.sendMsgBuf(LH_EPS_01_ID, 0, 8, lhEps01Buf);
 }
 
-void VWMQBCluster::sendMotor(int rpm, int coolantTemperature) {
+void VWMQBCluster::sendMotor(int rpm, int coolantTemperature, int oilTemperature) {
   //
   // Motor_Code_01
   //
@@ -289,7 +289,8 @@ void VWMQBCluster::sendMotor(int rpm, int coolantTemperature) {
 
   CAN.sendMsgBuf(MOTOR_04_ID, 0, 8, motor04Buf);
 
-  // CAN.sendMsgBuf(MOTOR_07_ID, 0, 8, motor07Buf); // TODO: REMOVE
+  motor07Buf[2] = 60 + constrain(oilTemperature, 49, 193);
+  CAN.sendMsgBuf(MOTOR_07_ID, 0, 8, motor07Buf);
 
   uint8_t mappedVal = map(coolantTemperature, 50, 130, 0x80, 0xED);
   motor09Buf[0] = mappedVal;
