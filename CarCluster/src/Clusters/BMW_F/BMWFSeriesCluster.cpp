@@ -134,7 +134,6 @@ void BMWFSeriesCluster::sendRPM(int rpm, int manualGear) {
   }
 
   float rpmScaledFloat = rpm * 1.557f;
-  uint16_t rpmScaled = (uint16_t)rpmScaledFloat;
 
   uint16_t rpmScaledPlus  = (uint16_t)((rpm + 4) * 1.557f);
   uint16_t rpmScaledMinus = (uint16_t)((rpm) * 1.557f);
@@ -216,7 +215,7 @@ void BMWFSeriesCluster::sendBasicDriveInfo(int engineTemperature) {
   // 默认行为：巡航关闭
   // ===============================
   
-  uint8_t cruiseStateByte = game.cruiseControlActive ? 0xE3 : 0x00;
+  uint8_t cruiseStateByte = 0x00;
   
   unsigned char cruiseWithoutCRC[] = {
     0xF0 | counter4Bit,   // Alive counter / 循环计数器
@@ -317,15 +316,17 @@ void BMWFSeriesCluster::sendLights(bool mainLights, bool highBeam, bool rearFogL
   // mainLights = true AND highBeam = true
   // ===============================
 
-  if (highBeam) {
-    mainLights = true;
-  }
+bool lowBeam = mainLights;
 
-  uint8_t lightStatus =
-      (highBeam << 1) |
-      (mainLights << 2) |
-      (frontFogLight << 5) |
-      (rearFogLight << 6);
+if (highBeam) {
+  lowBeam = true;
+}
+
+uint8_t lightStatus =
+    (highBeam << 1) |
+    (lowBeam << 2) |
+    (frontFogLight << 5) |
+    (rearFogLight << 6);
 
   unsigned char lightsWithoutCRC[] = {
     lightStatus,
