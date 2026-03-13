@@ -304,10 +304,35 @@ void BMWFSeriesCluster::sendBlinkers(bool leftTurningIndicator, bool rightTurnin
 }
 
 void BMWFSeriesCluster::sendLights(bool mainLights, bool highBeam, bool rearFogLight, bool frontFogLight) {
-  //Lights
-  //32 = front fog light, 64 = rear fog light, 2 = high beam, 4 = main lights
-  uint8_t lightStatus = highBeam << 1 | mainLights << 2 | frontFogLight << 5 | rearFogLight << 6;
-  unsigned char lightsWithoutCRC[] = { lightStatus, 0xC0, 0xF7 };
+
+  // ===============================
+  // Light logic
+  // 灯光逻辑
+  //
+  // If high beam is active, low beam must also be ON.
+  // 如果远光开启，近光必须同时开启
+  //
+  // AUTO high beam indicator will appear when:
+  // 自动远光图标触发条件：
+  // mainLights = true AND highBeam = true
+  // ===============================
+
+  if (highBeam) {
+    mainLights = true;
+  }
+
+  uint8_t lightStatus =
+      (highBeam << 1) |
+      (mainLights << 2) |
+      (frontFogLight << 5) |
+      (rearFogLight << 6);
+
+  unsigned char lightsWithoutCRC[] = {
+    lightStatus,
+    0xC0,
+    0xF7
+  };
+
   CAN.sendMsgBuf(0x21A, 0, 3, lightsWithoutCRC);
 }
 
