@@ -104,7 +104,9 @@ void VWPQ25Cluster::updateWithGame(GameState& game) {  if (millis() - lastDashbo
     // scheduler, but for now this seems to work.
 
     sendImmobilizer();
-    sendIndicators(game.leftTurningIndicator, game.rightTurningIndicator, game.turningIndicatorsBlinking, game.highBeam, game.frontFogLight, false, false, game.doorOpen, game.backlightBrightness);
+    sendIndicators(game.leftTurningIndicator, game.rightTurningIndicator, game.turningIndicatorsBlinking, game.highBeam, game.frontFogLight,  game.batteryLight, false, game.doorOpen, game.backlightBrightness);
+      // sendIndicators(boolean leftBlinker,  boolean rightBlinker,       boolean blinkersBlinking,   boolean highBeam,boolean frontFogLight, boolean batteryWarning, boolean trunkOpen, boolean doorOpen, int brightness) {
+
     sendDieselEngine();
     sendRPM(mapRPM(game));
     sendSpeed(mapSpeed(game), false, game.offroadLight, game.absLight);

@@ -26,7 +26,7 @@
 // 5 = Skoda Superb 2 (VW PQ46)
 // 6 = BNW E60 (BMW E series)
 // 99 = Golf 7 (VW MQB) - Passthrough mode (if using an external gateway, BCM, ignition lock, ...)
-#define CLUSTER 1
+#define CLUSTER 5
 
 // Configure the maximum RPM value shown on the cluster
 // Leave at 0 for using the defaults based on the cluster. Change this is your cluster has different limits
