@@ -57,6 +57,8 @@ class VWMQBCluster: public Cluster {
     ClusterConfiguration config;
     config.minimumCoolantTemperature = 50;
     config.maximumCoolantTemperature = 130;
+    config.minimumOilTemperature = 49;
+    config.maximumOilTemperature = 193;
     config.maximumSpeedValue = 260;
     config.maximumRPMValue = 8000;
     config.minimumFuelPotValue = 18;
@@ -152,6 +154,7 @@ class VWMQBCluster: public Cluster {
     int mapSpeed(GameState& game);
     int mapRPM(GameState& game);
     int mapCoolantTemperature(GameState& game);
+    int mapOilTemperature(GameState& game);
 };
 
 #endif

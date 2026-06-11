@@ -26,7 +26,7 @@ WebDashboard::WebDashboard(GameState &game, int serverPort, unsigned long webDas
   gearCard(&dashboard, SLIDER_CARD, "Selected gear", "", 1, 15),
   backlightCard(&dashboard, SLIDER_CARD, "Backlight brightness", "%", 0, 100),
   coolantTemperatureCard(&dashboard, SLIDER_CARD, "Coolant temperature", "C", gameState.configuration.minimumCoolantTemperature, gameState.configuration.maximumCoolantTemperature),
-  oilTemperatureCard(&dashboard, SLIDER_CARD, "Oil Temperature", "C", 49, 193),
+  oilTemperatureCard(&dashboard, SLIDER_CARD, "Oil Temperature", "C", gameState.configuration.minimumOilTemperature, gameState.configuration.maximumOilTemperature),
   handbrakeCard(&dashboard, BUTTON_CARD, "Handbrake"),
   button1Card(&dashboard, BUTTON_CARD, "Steering button 1"),
   button2Card(&dashboard, BUTTON_CARD, "Steering button 2"),

@@ -80,6 +80,12 @@ int VWMQBCluster::mapCoolantTemperature(GameState& game) {
   return game.coolantTemperature;
 }
 
+int VWMQBCluster::mapOilTemperature(GameState& game) {
+  if (game.oilTemperature < game.configuration.minimumOilTemperature) { return game.configuration.minimumOilTemperature; }
+  if (game.oilTemperature > game.configuration.maximumOilTemperature) { return game.configuration.maximumOilTemperature; }
+  return game.oilTemperature;
+}
+
 void VWMQBCluster::updateWithGame(GameState& game) {
   if (millis() - lastDashboardUpdateTime >= dashboardUpdateTime50) {
     // This should probably be done using a more sophisticated method like a
@@ -93,7 +99,7 @@ void VWMQBCluster::updateWithGame(GameState& game) {
     sendESP21(mapSpeed(game));
     sendTSK07();
     sendLhEPS01();
-    sendMotor(mapRPM(game), mapCoolantTemperature(game), game.oilTemperature);
+    sendMotor(mapRPM(game), mapCoolantTemperature(game), mapOilTemperature(game));
     sendESP24();
     sendGear(mapGenericGearToLocalGear(game.gear));
     sendAirbag01();
@@ -289,7 +295,7 @@ void VWMQBCluster::sendMotor(int rpm, int coolantTemperature, int oilTemperature
 
   CAN.sendMsgBuf(MOTOR_04_ID, 0, 8, motor04Buf);
 
-  motor07Buf[2] = 60 + constrain(oilTemperature, 49, 193);
+  motor07Buf[2] = 60 + oilTemperature;
   CAN.sendMsgBuf(MOTOR_07_ID, 0, 8, motor07Buf);
 
   uint8_t mappedVal = map(coolantTemperature, 50, 130, 0x80, 0xED);
