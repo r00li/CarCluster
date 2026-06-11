@@ -25,6 +25,7 @@
 // 4 = Polo 6R (VW PQ25)
 // 5 = Skoda Superb 2 (VW PQ46)
 // 6 = BNW E60 (BMW E series)
+// 7 = BMW E46
 // 99 = Golf 7 (VW MQB) - Passthrough mode (if using an external gateway, BCM, ignition lock, ...)
 #define CLUSTER 1
 
@@ -84,11 +85,12 @@
 #define ANALOG_FUEL_POT_CS2 33
 //
 // CONFIGURATION OF MINIMUM AND MAXIMUM VALUES:
-// Depends on speicific sluter. If fuel percentage indicated on your cluster is wrong, change these values
-#define ANALOG_FUEL_POT_MINIMUM_VALUE 18
-#define ANALOG_FUEL_POT_MAXIMUM_VALUE 83
-#define ANALOG_FUEL_POT_MINIMUM_VALUE2 17
-#define ANALOG_FUEL_POT_MAXIMUM_VALUE2 75
+// Depends on specific sluter. If fuel percentage indicated on your cluster is wrong, change these values
+// Leave at -1 for using the defaults based on the cluster.
+#define ANALOG_FUEL_POT_MINIMUM_VALUE -1
+#define ANALOG_FUEL_POT_MAXIMUM_VALUE -1
+#define ANALOG_FUEL_POT_MINIMUM_VALUE2 -1
+#define ANALOG_FUEL_POT_MAXIMUM_VALUE2 -1
 
 // VW PQ specific pin configuration (for various non CAN based values)
 // If you are not using VW PQ based instrument cluster leave this alone
@@ -99,11 +101,16 @@
 #define VWPQ_BRAKE_FLUID_WARNING_PIN 22
 
 // MQB Passthrough specific configuration
-#define VWMQB_PASS_CAN2_CS 17
-#define VWMQB_PASS_CAN2_INT 16
+#define VWMQB_PASS_CAN2_CS 25
+#define VWMQB_PASS_CAN2_INT 27
 
-// BMW E series specific configuration
+// BMW E series specific configuration (E46 too)
 #define BMWE_HANDBRAKE_INDICATOR_PIN 13
+
+// BMW E46 specific configuration
+#define BMWE46_SPEED_PIN 22
+#define BMWE46_ABS_PIN 21
+#define BMWE46_FAKE_CONSUMPTION true // Show faked consumption based on RPM (we do not have injector timing data)
 
 // --------------------------------------------------------------------
 // ------------------------ END USER CONFIGURATION --------------------
@@ -113,7 +120,7 @@
 // Other configurable variables that usually don't need changing
 
 // How often is the web dashboard updated
-#define WIFI_WEB_DASHBOARD_UPDATE_INTERVAL 2000
+#define WIFI_WEB_DASHBOARD_UPDATE_INTERVAL 3000
 
 // Name of the access point created
 #define WIFI_CONFIG_PORTAL_ACCESS_POINT_NAME "CarCluster"
@@ -188,6 +195,11 @@ char canRxMsgString[128];  // Array to store serial string
   #include "src/Clusters/BMW_E/BMWESeriesCluster.h"
   BMWESeriesCluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, BMWE_HANDBRAKE_INDICATOR_PIN);
   ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
+#elif CLUSTER == 7
+  // BMW E46
+  #include "src/Clusters/BMW_E46/BMWE46Cluster.h"
+  BMWE46Cluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, BMWE_HANDBRAKE_INDICATOR_PIN, BMWE46_SPEED_PIN, BMWE46_ABS_PIN, BMWE46_FAKE_CONSUMPTION);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
 #elif CLUSTER == 99
   // Golf 7 Passthrough mode
   MCP_CAN CAN2(VWMQB_PASS_CAN2_CS);  // Set CS pin
@@ -210,15 +222,30 @@ SimhubGame simhubGame(game);
   // Wifi/web portal variables
   #include "src/Other/WifiFunctions.h"
   #include "src/Other/WebDashboard.h"
+  #include "src/Other/mongoose/mongoose.h"
+  #include "src/Other/mongoose/mongoose_glue.h"
 
   #include "src/Games/ForzaHorizonGame.h"
   #include "src/Games/BeamNGGame.h"
 
   WifiFunctions wifiFunctions;
-  WebDashboard webDashboard(game, WIFI_WEB_DASHBOARD_PORT, WIFI_WEB_DASHBOARD_UPDATE_INTERVAL);
+  WebDashboard webDashboard(game, WIFI_WEB_DASHBOARD_UPDATE_INTERVAL);
 
   ForzaHorizonGame forzaHorizonGame(game, WIFI_FORZA_UDP_PORT);
   BeamNGGame beamNGGame(game, WIFI_BEAM_UDP_PORT);
+
+  void webDashboardGetState(struct state *data) {
+    webDashboard.getState(data);
+  }
+  void webDashBoardSetState(struct state *data) {
+    webDashboard.setState(data);
+  }
+  bool webDashboardCheckSteeringButtonPressed(void) {
+    return false;
+  }
+  void webDashboardSetSteeringButtonPressed(struct mg_str params) {
+    webDashboard.steeringWheelAction(params);
+  }
 #endif 
 
 // Serial JSON parsing
@@ -232,9 +259,15 @@ void setup() {
   //Begin with Serial Connection
   Serial.begin(SERIAL_BAUD_RATE);
 
+  delay(1000);
+  Serial.println("Starting CarCluster...");
+
   #if WIFI_ENABLED == 1
     wifiFunctions.begin(WIFI_CONFIG_PORTAL_ACCESS_POINT_NAME, WIFI_CONFIG_PORTAL_ACCESS_POINT_PASSWORD, WIFI_CONFIG_PORTAL_TIMEOUT);
-    webDashboard.begin();
+    mongoose_init();
+    mg_log_set(MG_LL_ERROR);
+    mongoose_set_http_handlers("state", webDashboardGetState, webDashBoardSetState);
+    mongoose_set_http_handlers("steering_button_pressed", webDashboardCheckSteeringButtonPressed, webDashboardSetSteeringButtonPressed);
     forzaHorizonGame.begin();
     beamNGGame.begin();
   #endif
@@ -291,6 +324,7 @@ void loop() {
   // Update the web dashboard
   #if WIFI_ENABLED == 1
     webDashboard.update();
+    mongoose_poll();
   #endif
 }
 
@@ -365,20 +399,20 @@ void readCanBuffer() {
 
     // Uncomment if you want to see what is being received on the CAN bus
     /*
-    if ((rxId & 0x80000000) == 0x80000000)  // Determine if ID is standard (11 bits) or extended (29 bits)
-      sprintf(msgString, "Extended ID: 0x%.8lX  DLC: %1d  Data:", (rxId & 0x1FFFFFFF), len);
+    if ((canRxId & 0x80000000) == 0x80000000)  // Determine if ID is standard (11 bits) or extended (29 bits)
+      sprintf(canRxMsgString, "Extended ID: 0x%.8lX  DLC: %1d  Data:", (canRxId & 0x1FFFFFFF), canRxLen);
     else
-      sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, len);
+      sprintf(canRxMsgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", canRxId, canRxLen);
 
-    Serial.print(msgString);
+    Serial.print(canRxMsgString);
 
-    if ((rxId & 0x40000000) == 0x40000000) {  // Determine if message is a remote request frame.
-      sprintf(msgString, " REMOTE REQUEST FRAME");
-      Serial.print(msgString);
+    if ((canRxId & 0x40000000) == 0x40000000) {  // Determine if message is a remote request frame.
+      sprintf(canRxMsgString, " REMOTE REQUEST FRAME");
+      Serial.print(canRxMsgString);
     } else {
-      for (byte i = 0; i < len; i++) {
-        sprintf(msgString, " 0x%.2X", rxBuf[i]);
-        Serial.print(msgString);
+      for (byte i = 0; i < canRxLen; i++) {
+        sprintf(canRxMsgString, " 0x%.2X", canRxBuf[i]);
+        Serial.print(canRxMsgString);
       }
     }
 

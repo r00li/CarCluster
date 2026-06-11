@@ -6,264 +6,157 @@
 
 #include "WebDashboard.h"
 
-WebDashboard::WebDashboard(GameState &game, int serverPort, unsigned long webDashboardUpdateInterval):
-  gameState(game),
-  server(serverPort), 
-  dashboard(&server),
-  introCard(&dashboard, GENERIC_CARD, "Info"),
-  speedCard(&dashboard, SLIDER_CARD, "Speed", "km/h", 0, gameState.configuration.maximumSpeedValue),
-  rpmCard(&dashboard, SLIDER_CARD, "RPM", "rpm", 0, gameState.configuration.maximumRPMValue),
-  fuelCard(&dashboard, SLIDER_CARD, "Fuel qunaity", "%", 0, 100),
-  highBeamCard(&dashboard, BUTTON_CARD, "High beam"),
-  fogLampCard(&dashboard, BUTTON_CARD, "Rear Fog lamp"),
-  frontFogLampCard(&dashboard, BUTTON_CARD, "Front Fog lamp"),
-  leftTurningIndicatorCard(&dashboard, BUTTON_CARD, "Indicator left"),
-  rightTurningIndicatorCard(&dashboard, BUTTON_CARD, "Indicator right"),
-  mainLightsCard(&dashboard, BUTTON_CARD, "Main lights"),
-  doorOpenCard(&dashboard, BUTTON_CARD, "Door open warning"),
-  dscActiveCard(&dashboard, BUTTON_CARD, "DSC active"),
-  absLightCard(&dashboard, BUTTON_CARD, "ABS indicator"),
-  gearCard(&dashboard, SLIDER_CARD, "Selected gear", "", 1, 15),
-  backlightCard(&dashboard, SLIDER_CARD, "Backlight brightness", "%", 0, 100),
-  coolantTemperatureCard(&dashboard, SLIDER_CARD, "Coolant temperature", "C", gameState.configuration.minimumCoolantTemperature, gameState.configuration.maximumCoolantTemperature),
-  oilTemperatureCard(&dashboard, SLIDER_CARD, "Oil Temperature", "C", gameState.configuration.minimumOilTemperature, gameState.configuration.maximumOilTemperature),
-  handbrakeCard(&dashboard, BUTTON_CARD, "Handbrake"),
-  button1Card(&dashboard, BUTTON_CARD, "Steering button 1"),
-  button2Card(&dashboard, BUTTON_CARD, "Steering button 2"),
-  button3Card(&dashboard, BUTTON_CARD, "Steering button 3"),
-  ignitionCard(&dashboard, BUTTON_CARD, "Ignition"),
-  outdoorTemperatureCard(&dashboard, SLIDER_CARD, "Outdoor temperature", "C", -30, 40),
-  indicatorsBlinkCard(&dashboard, BUTTON_CARD, "[VW] Indicators blink"),
-  driveModeCard(&dashboard, SLIDER_CARD, "[BMW] Drive mode", "", 1, 7) { 
+WebDashboard::WebDashboard(GameState &game, unsigned long webDashboardUpdateInterval): gameState(game) {
   this->webDashboardUpdateInterval = webDashboardUpdateInterval;
-  introCard.update("Not all functions are available on all clusters");
 }
 
-void WebDashboard::begin() {
-  speedCard.attachCallback([&](int value) {
-    gameState.speed = value;
-    speedCard.update(value);
-    dashboard.sendUpdates();
-  });
+void WebDashboard::getState(struct state *data) {
+  data->speed = gameState.speed;
+  data->maximumSpeed = gameState.configuration.maximumSpeedValue;
+  data->rpm = gameState.rpm;
+  data->maximumRPM = gameState.configuration.maximumRPMValue;
+  data->fuel = gameState.fuelQuantity;
+  data->high_beam = gameState.highBeam;
+  data->fog_rear = gameState.rearFogLight;
+  data->fog_front = gameState.frontFogLight;
+  data->left_indicator = gameState.leftTurningIndicator;
+  data->right_indicator = gameState.rightTurningIndicator;
+  data->main_lights = gameState.mainLights;
+  data->door_open = gameState.doorOpen;
+  data->dsc = gameState.offroadLight;
+  data->abs = gameState.absLight;
+  strcpy(data->gear, mapGenericGearToLocalGear(gameState.gear));
+  data->backlight = gameState.backlightBrightness;
+  data->coolant_temp = gameState.coolantTemperature;
+  data->minimumCoolantTemp = gameState.configuration.minimumCoolantTemperature;
+  data->maximumCoolantTemp = gameState.configuration.maximumCoolantTemperature;
+  data->oil_temp = gameState.oilTemperature;
+  data->minimumOilTemp = gameState.configuration.minimumOilTemperature;
+  data->maximumOilTemp = gameState.configuration.maximumOilTemperature;
+  data->handbrake = gameState.handbrake;
+  data->ignition = gameState.ignition;
+  strcpy(data->drive_mode, mapGenericDriveModeToLocalDriveMode(gameState.driveMode));
+  data->outdoor_temp = gameState.outdoorTemperature;
+  data->indicators_blink = gameState.turningIndicatorsBlinking;
+}
 
-  rpmCard.attachCallback([&](int value) {
-    gameState.rpm = value;
-    rpmCard.update(value);
-    dashboard.sendUpdates();
-  });
+void WebDashboard::setState(struct state *data) {
+  gameState.speed = data->speed;
+  gameState.rpm = data->rpm;
+  gameState.fuelQuantity = data->fuel;
+  gameState.highBeam = data->high_beam;
+  gameState.rearFogLight = data->fog_rear;
+  gameState.frontFogLight = data->fog_front;
+  gameState.leftTurningIndicator = data->left_indicator;
+  gameState.rightTurningIndicator = data->right_indicator;
+  gameState.mainLights = data->main_lights;
+  gameState.doorOpen = data->door_open;
+  gameState.offroadLight = data->dsc;
+  gameState.absLight = data->abs;
+  gameState.gear = mapLocalGearToGenericGear(data->gear);
+  gameState.backlightBrightness = data->backlight;
+  gameState.coolantTemperature = data->coolant_temp;
+  gameState.oilTemperature = data->oil_temp;
+  gameState.handbrake = data->handbrake;
+  gameState.ignition = data->ignition;
+  gameState.driveMode = mapLocalDriveModeToGenericDriveMode(data->drive_mode);
+  gameState.outdoorTemperature = data->outdoor_temp;
+  gameState.turningIndicatorsBlinking = data->indicators_blink;
+}
 
-  fuelCard.attachCallback([&](int value) {
-    gameState.fuelQuantity = value;
-    fuelCard.update(value);
-    dashboard.sendUpdates();
-  });
+void WebDashboard::steeringWheelAction(struct mg_str params) {
+  if (params.len >= 1) {
+    gameState.buttonEventToProcess = params.buf[0];
+  }
+}
 
-  highBeamCard.attachCallback([&](int value) {
-    gameState.highBeam = (bool)value;
-    highBeamCard.update(value);
-    dashboard.sendUpdates();
-  });
+const char* WebDashboard::mapGenericGearToLocalGear(GearState inputGear) {
+  switch(inputGear) {
+    case GearState_Manual_1: return "1"; break;
+    case GearState_Manual_2: return "2"; break;
+    case GearState_Manual_3: return "3"; break;
+    case GearState_Manual_4: return "4"; break;
+    case GearState_Manual_5: return "5"; break;
+    case GearState_Manual_6: return "6"; break;
+    case GearState_Manual_7: return "7"; break;
+    case GearState_Manual_8: return "8"; break;
+    case GearState_Manual_9: return "9"; break;
+    case GearState_Manual_10: return "10"; break;
+    case GearState_Auto_P: return "P"; break;
+    case GearState_Auto_R: return "R"; break;
+    case GearState_Auto_N: return "N"; break;
+    case GearState_Auto_D: return "D"; break;
+    case GearState_Auto_S: return "S"; break;
+  }
+}
 
-  fogLampCard.attachCallback([&](int value) {
-    gameState.rearFogLight = (bool)value;
-    fogLampCard.update(value);
-    dashboard.sendUpdates();
-  });
+GearState WebDashboard::mapLocalGearToGenericGear(const char *gear) {
+    if (!gear || !gear[0]) {
+      return GearState_Auto_P;
+    }
 
-  frontFogLampCard.attachCallback([&](int value) {
-    gameState.frontFogLight = (bool)value;
-    frontFogLampCard.update(value);
-    dashboard.sendUpdates();
-  });
+    if (strcmp(gear, "10") == 0) {
+      return GearState_Manual_10;
+    }
 
-  leftTurningIndicatorCard.attachCallback([&](int value) {
-    gameState.leftTurningIndicator = (bool)value;
-    leftTurningIndicatorCard.update(value);
-    dashboard.sendUpdates();
-  });
+    switch (gear[0]) {
+        case '1': return GearState_Manual_1;
+        case '2': return GearState_Manual_2;
+        case '3': return GearState_Manual_3;
+        case '4': return GearState_Manual_4;
+        case '5': return GearState_Manual_5;
+        case '6': return GearState_Manual_6;
+        case '7': return GearState_Manual_7;
+        case '8': return GearState_Manual_8;
+        case '9': return GearState_Manual_9;
 
-  rightTurningIndicatorCard.attachCallback([&](int value) {
-    gameState.rightTurningIndicator = (bool)value;
-    rightTurningIndicatorCard.update(value);
-    dashboard.sendUpdates();
-  });
+        case 'P': return GearState_Auto_P;
+        case 'R': return GearState_Auto_R;
+        case 'N': return GearState_Auto_N;
+        case 'D': return GearState_Auto_D;
+        case 'S': return GearState_Auto_S;
+    }
 
-  mainLightsCard.attachCallback([&](int value) {
-    gameState.mainLights = (bool)value;
-    mainLightsCard.update(value);
-    dashboard.sendUpdates();
-  });
+    return GearState_Auto_P;
+}
 
-  doorOpenCard.attachCallback([&](int value) {
-    gameState.doorOpen = (bool)value;
-    doorOpenCard.update(value);
-    dashboard.sendUpdates();
-  });
+const char* WebDashboard::mapGenericDriveModeToLocalDriveMode(uint8_t driveMode) {
+  switch(driveMode) {
+    case 1: return "Traction"; break;
+    case 2: return "Comfort"; break;
+    case 4: return "Sport"; break;
+    case 5: return "Sport+"; break;
+    case 6: return "DSC off"; break;
+    case 7: return "Eco pro"; break;
+  }
+}
 
-  dscActiveCard.attachCallback([&](int value) {
-    gameState.offroadLight = (bool)value;
-    dscActiveCard.update(value);
-    dashboard.sendUpdates();
-  });
+uint8_t WebDashboard::mapLocalDriveModeToGenericDriveMode(const char *driveMode) {
+    if (!driveMode || !driveMode[0]) {
+      return 2;
+    }
 
-  absLightCard.attachCallback([&](int value) {
-    gameState.absLight = (bool)value;
-    absLightCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  gearCard.attachCallback([&](int value) {
-    gameState.gear = static_cast<GearState>(value);
-    gearCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  backlightCard.attachCallback([&](int value) {
-    gameState.backlightBrightness = value;
-    backlightCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  coolantTemperatureCard.attachCallback([&](int value) {
-    gameState.coolantTemperature = value;
-    coolantTemperatureCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  oilTemperatureCard.attachCallback([&](int value) {
-    gameState.oilTemperature = value;
-    oilTemperatureCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  handbrakeCard.attachCallback([&](int value) {
-    gameState.handbrake = (bool)value;
-    handbrakeCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  button1Card.attachCallback([&](int value) {
-    button1Card.update(value);
-    dashboard.sendUpdates();
-    gameState.buttonEventToProcess = 1;
-  });
-
-  button2Card.attachCallback([&](int value) {
-    button2Card.update(value);
-    dashboard.sendUpdates();
-    gameState.buttonEventToProcess = 2;
-  });
-
-  button3Card.attachCallback([&](int value) {
-    button3Card.update(value);
-    dashboard.sendUpdates();
-    gameState.buttonEventToProcess = 3;
-  });
-
-  ignitionCard.attachCallback([&](int value) {
-    gameState.ignition = (bool)value;
-    ignitionCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  driveModeCard.attachCallback([&](int value) {
-    gameState.driveMode = value;
-    driveModeCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  outdoorTemperatureCard.attachCallback([&](int value) {
-    gameState.outdoorTemperature = value;
-    outdoorTemperatureCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  indicatorsBlinkCard.attachCallback([&](int value) {
-    gameState.turningIndicatorsBlinking = (bool)value;
-    indicatorsBlinkCard.update(value);
-    dashboard.sendUpdates();
-  });
-
-  /*
-  val0Card.attachCallback([&](int value) {
-    val0 = value;
-    val0Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-  val1Card.attachCallback([&](int value) {
-    val1 = value;
-    val1Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-  val2Card.attachCallback([&](int value) {
-    val2 = value;
-    val2Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-  val3Card.attachCallback([&](int value) {
-    val3 = value;
-    val3Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-  val4Card.attachCallback([&](int value) {
-    val4 = value;
-    val4Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-  val5Card.attachCallback([&](int value) {
-    val5 = value;
-    val5Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-  val6Card.attachCallback([&](int value) {
-    val6 = value;
-    val6Card.update(value);
-    dashboard.sendUpdates();
-  });
-
-  val7Card.attachCallback([&](int value) {
-    val7 = value;
-    val7Card.update(value);
-    dashboard.sendUpdates();
-  });
-*/
-
-  server.begin();
-  update();
+    if (strcmp(driveMode, "Traction") == 0) {
+      return 1;
+    } else if (strcmp(driveMode, "Comfort") == 0) {
+      return 2;
+    } else if (strcmp(driveMode, "Sport") == 0) {
+      return 4;
+    } else if (strcmp(driveMode, "Sport+") == 0) {
+      return 5;
+    } else if (strcmp(driveMode, "DSC off") == 0) {
+      return 6;
+    } else if (strcmp(driveMode, "Eco pro") == 0) {
+      return 7;
+    } else {
+      return 2;
+    }
 }
 
 void WebDashboard::update() {
   // Prevent too frequent updates of the web dashboard
   if (millis() - lastWebDashboardUpdateTime >= webDashboardUpdateInterval) {
-    speedCard.update(gameState.speed);
-    rpmCard.update(gameState.rpm);
-    fuelCard.update(gameState.fuelQuantity);
-    highBeamCard.update(gameState.highBeam);
-    fogLampCard.update(gameState.rearFogLight);
-    frontFogLampCard.update(gameState.frontFogLight);
-    leftTurningIndicatorCard.update(gameState.leftTurningIndicator);
-    rightTurningIndicatorCard.update(gameState.rightTurningIndicator);
-    mainLightsCard.update(gameState.mainLights);
-    doorOpenCard.update(gameState.doorOpen);
-    dscActiveCard.update(gameState.offroadLight);
-    absLightCard.update(gameState.absLight);
-    gearCard.update(gameState.gear);
-    backlightCard.update(gameState.backlightBrightness);
-    coolantTemperatureCard.update(gameState.coolantTemperature);
-    oilTemperatureCard.update(gameState.oilTemperature);
-    handbrakeCard.update(gameState.handbrake);
-    ignitionCard.update(gameState.ignition);
-    driveModeCard.update(gameState.driveMode);
-    outdoorTemperatureCard.update(gameState.outdoorTemperature);
-    indicatorsBlinkCard.update(gameState.turningIndicatorsBlinking);
-    dashboard.sendUpdates();
-
+    glue_update_state();
     lastWebDashboardUpdateTime = millis();
   }
 }
