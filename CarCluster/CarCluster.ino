@@ -306,6 +306,9 @@ START_INIT2:
 }
 
 void loop() {
+  // Free-running software clock (no RTC): ticks from millis(); external time sets just correct it.
+  game.clock.tick();
+
   // Update the cluster with current state of the game
   cluster.updateWithGame(game);
 
@@ -375,6 +378,16 @@ void readSerialJson() {
         // Used to decode custom protocol from Simhub in the following format:
         // {"action":10, "spe":54, "gea":"2", "rpm":3590, "mrp":7999, "lft":0, "rit":0, "oit":0, "pau":0, "run":0, "fue":0, "hnb":0, "abs":0, "tra":0}
         simhubGame.decodeSerialData(doc);
+      } else if (action == 1) {
+        // Initialise / set the cluster clock (VW MQB). Self-contained: only touches the
+        // clock fields, each optional/non-destructive. The free-running software clock
+        // then keeps ticking on its own.
+        // Example: {"action":1, "chh":20, "cmm":30, "cyy":25, "cmo":6, "cdd":12}
+        game.clock.hour   = doc["chh"] | game.clock.hour;
+        game.clock.minute = doc["cmm"] | game.clock.minute;
+        game.clock.year   = doc["cyy"] | game.clock.year;
+        game.clock.month  = doc["cmo"] | game.clock.month;
+        game.clock.day    = doc["cdd"] | game.clock.day;
       }
 
       //Reset for the next message
