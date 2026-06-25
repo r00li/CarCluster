@@ -51,10 +51,10 @@ Currently fully tested and supported are the following instrument clusters:
 | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f55.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_e60.jpg?raw=true) | ![](Misc/cluster_images/cluster_e46.jpg) |
 | *Fully supported* | *Mostly supported - WIP - no fuel sim, only some indicators* | *Fully supported - needs specific connections, see wiring* |
 
-| Mercedes C Class (W204)| Mercedes S Class (W221) |  |
+| Mercedes C Class (W204) | Mercedes S Class (W221) |  |
 |--|--|--|
 | MERCEDES W204 | MERCEDES W221 |  |
-| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_204.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_w221.jpg?raw=true) | ![](Misc/cluster_images/cluster_empty.jpg) |
+| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_w204.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_w221.jpg?raw=true) | ![](Misc/cluster_images/cluster_empty.jpg) |
 | *Fully supported* | *Fully supported* |  |
 
 For people just starting I would recommend one of the Merces clusters, one of BMW F series clusters, or a VW MQB based cluster (in that order). If you want to try other clusters from same platform, they will probably work, but modifications might be needed based on the specific car model. If you are unsure if it will work, get the specific clusters mentioned here.
