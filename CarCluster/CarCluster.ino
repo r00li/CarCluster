@@ -26,7 +26,9 @@
 // 5 = Skoda Superb 2 (VW PQ46)
 // 6 = BNW E60 (BMW E series)
 // 7 = BMW E46
-// 99 = Golf 7 (VW MQB) - Passthrough mode (if using an external gateway, BCM, ignition lock, ...)
+// 8 = Mercedes Benz C Class (W204) [dual CAN]
+// 9 = Mercedes Benz S Class (W221)
+// 99 = Golf 7 (VW MQB) - Passthrough mode (if using an external gateway, BCM, ignition lock, ...) [dual CAN]
 #define CLUSTER 1
 
 // Configure the maximum RPM value shown on the cluster
@@ -94,10 +96,6 @@
 #define VWPQ_HANDBRAKE_INDICATOR_PIN 13
 #define VWPQ_BRAKE_FLUID_WARNING_PIN 22
 
-// MQB Passthrough specific configuration
-#define VWMQB_PASS_CAN2_CS 25
-#define VWMQB_PASS_CAN2_INT 27
-
 // BMW E series specific configuration (E46 too)
 #define BMWE_HANDBRAKE_INDICATOR_PIN 13
 
@@ -105,6 +103,10 @@
 #define BMWE46_SPEED_PIN 22
 #define BMWE46_ABS_PIN 21
 #define BMWE46_FAKE_CONSUMPTION true // Show faked consumption based on RPM (we do not have injector timing data)
+
+// Dual CAN clusters PIN configuration (MB W204, MQB passthrough, ...)
+#define CAN2_CS 25
+#define CAN2_INT 27
 
 // --------------------------------------------------------------------
 // ------------------------ END USER CONFIGURATION --------------------
@@ -143,8 +145,8 @@
 // Libraries
 #include <SPI.h> // CAN Bus Shield SPI Pin Library (arduino system library)
 
-#include "src/Libs/ArduinoJson/ArduinoJson.h" // For parsing serial data and for ESPDash ( https://github.com/bblanchon/ArduinoJson )
-#include "src/Libs/MCP_CAN/mcp_can.h" // CAN Bus Shield Compatibility Library ( https://github.com/coryjfowler/MCP_CAN_lib )
+#include "src/Libs/ArduinoJson/ArduinoJson.h" // For parsing serial data ( https://github.com/bblanchon/ArduinoJson )
+#include "src/Libs/MCP_CAN/mcp_can.h" // CAN Bus Shield Library ( https://github.com/coryjfowler/MCP_CAN_lib )
 
 #include "src/Games/GameSimulation.h"
 #include "src/Games/SimhubGame.h"
@@ -194,9 +196,21 @@ char canRxMsgString[128];  // Array to store serial string
   #include "src/Clusters/BMW_E46/BMWE46Cluster.h"
   BMWE46Cluster cluster(CAN, ANALOG_FUEL_POT_INC, ANALOG_FUEL_POT_DIR, ANALOG_FUEL_POT_CS1, ANALOG_FUEL_POT_CS2, BMWE_HANDBRAKE_INDICATOR_PIN, BMWE46_SPEED_PIN, BMWE46_ABS_PIN, BMWE46_FAKE_CONSUMPTION);
   ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
+#elif CLUSTER == 8
+  // Mercedes Benz C Class (W204)
+  MCP_CAN CAN2(CAN2_CS);  // Set CS pin
+
+  #include "src/Clusters/MERCEDES_W204/MercedesW204Cluster.h"
+  MercedesW204Cluster cluster(CAN, CAN2);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
+#elif CLUSTER == 9
+  // Mercedes Benz S Class (W221)
+  #include "src/Clusters/MERCEDES_W221/MercedesW221Cluster.h"
+  MercedesW221Cluster cluster(CAN);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
 #elif CLUSTER == 99
   // Golf 7 Passthrough mode
-  MCP_CAN CAN2(VWMQB_PASS_CAN2_CS);  // Set CS pin
+  MCP_CAN CAN2(CAN2_CS);  // Set CS pin
 
   long unsigned int canRxId2;
   unsigned char canRxLen2 = 0;
@@ -240,6 +254,13 @@ SimhubGame simhubGame(game);
   void webDashboardSetSteeringButtonPressed(struct mg_str params) {
     webDashboard.steeringWheelAction(params);
   }
+  static struct debug debugState = {1, 0, 0, 0, 0, 0, 0, 0, 0, false, 0, 0, 8};
+  void webDashboardGetDebug(struct debug *data) {
+    *data = debugState;  // Sync with your device
+  }
+  void webDashboardSetDebug(struct debug *data) {
+    debugState = *data; // Sync with your device
+  }
 #endif 
 
 // Serial JSON parsing
@@ -261,6 +282,7 @@ void setup() {
     mongoose_init();
     mg_log_set(MG_LL_ERROR);
     mongoose_set_http_handlers("state", webDashboardGetState, webDashBoardSetState);
+    mongoose_set_http_handlers("debug", webDashboardGetDebug, webDashboardSetDebug);
     mongoose_set_http_handlers("steering_button_pressed", webDashboardCheckSteeringButtonPressed, webDashboardSetSteeringButtonPressed);
     forzaHorizonGame.begin();
     beamNGGame.begin();
@@ -270,8 +292,13 @@ void setup() {
   
   #if CLUSTER == 6
     INT8U canSpeed = CAN_100KBPS;
+    INT8U can2Speed = CAN_100KBPS;
+  #elif CLUSTER == 8
+    INT8U canSpeed = CAN_500KBPS;
+    INT8U can2Speed = CAN_125KBPS;
   #else
     INT8U canSpeed = CAN_500KBPS;
+    INT8U can2Speed = CAN_500KBPS;
   #endif
 
   //Begin with CAN Bus Initialization
@@ -287,12 +314,12 @@ START_INIT:
   }
   CAN.setMode(MCP_NORMAL);
 
-  #if CLUSTER == 99
-    pinMode(VWMQB_PASS_CAN2_INT, INPUT);
+  #if CLUSTER == 99 || CLUSTER == 8
+    pinMode(CAN2_INT, INPUT);
 
     //Begin with CAN Bus 2 Initialization
 START_INIT2:
-    if (CAN_OK == CAN2.begin(MCP_ANY, canSpeed, MCP_8MHZ))  // init can bus
+    if (CAN_OK == CAN2.begin(MCP_ANY, can2Speed, MCP_8MHZ))  // init can bus
     {
       Serial.println("CAN2 BUS Shield init ok!");
     } else {
@@ -318,6 +345,11 @@ void loop() {
   // Update the web dashboard
   #if WIFI_ENABLED == 1
     webDashboard.update();
+    #if CLUSTER == 99 || CLUSTER == 8
+      webDashboard.handleDebug(debugState, CAN, &CAN2);
+    #else
+      webDashboard.handleDebug(debugState, CAN);
+    #endif
     mongoose_poll();
   #endif
 }
@@ -416,7 +448,7 @@ void readCanBuffer() {
 
   #if CLUSTER == 99
     // From cluster to car
-    if (!digitalRead(VWMQB_PASS_CAN2_INT)) {                      // If CAN0_INT pin is low, read receive buffer
+    if (!digitalRead(CAN2_INT)) {                      // If CAN0_INT pin is low, read receive buffer
       CAN2.readMsgBuf(&canRxId2, &canRxLen2, canRxBuf2);  // Read data: len = data length, buf = data byte(s)
 
       // Forward anything that we get back to the car

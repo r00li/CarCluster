@@ -62,7 +62,7 @@ void WebDashboard::setState(struct state *data) {
 
 void WebDashboard::steeringWheelAction(struct mg_str params) {
   if (params.len >= 1) {
-    gameState.buttonEventToProcess = params.buf[0];
+    gameState.buttonEventToProcess = params.buf[0] - '0';
   }
 }
 
@@ -154,5 +154,23 @@ void WebDashboard::update() {
   if (millis() - lastWebDashboardUpdateTime >= webDashboardUpdateInterval) {
     glue_update_state();
     lastWebDashboardUpdateTime = millis();
+  }
+}
+
+void WebDashboard::handleDebug(struct debug &data, MCP_CAN& CAN1, MCP_CAN* CAN2) {
+  if (data.enabled == true && data.bytes > 0) {
+    if (millis() - data.delay >= lastDebugUpdateInterval) {
+      uint8_t frame[8] = {data.byte0, data.byte1, data.byte2, data.byte3, data.byte4, data.byte5, data.byte6, data.byte7};
+
+      int bytes = data.bytes > 8 ? 8 : data.bytes;
+
+     if (data.bus == 2 && CAN2 != nullptr) {
+        CAN2->sendMsgBuf(data.address, 0, bytes, frame);
+      } else {
+        CAN1.sendMsgBuf(data.address, 0, bytes, frame);
+      }
+
+      lastDebugUpdateInterval = millis();
+    }
   }
 }

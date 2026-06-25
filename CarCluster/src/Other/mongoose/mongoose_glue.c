@@ -5,6 +5,16 @@
 // Default mock implementation of the API callbacks
 
 #include "mongoose_glue.h"
+// Do not edit! See https://mongoose.ws/docs/guides/web-ui-builder/#custom-api-handlers
+static struct debug s_debug = {1, 0, 0, 0, 0, 0, 0, 0, 0, false, 0, 0, 8};
+void glue_get_debug(struct debug *data) {
+  *data = s_debug;  // Sync with your device
+}
+void glue_set_debug(struct debug *data) {
+  s_debug = *data; // Sync with your device
+}
+
+// Do not edit! See https://mongoose.ws/docs/guides/web-ui-builder/#custom-api-handlers
 static struct state s_state = {0, 100, 0, 5000, "P", 0, 0, 0, 150, 10, 0, false, false, false, false, false, false, false, false, false, false, true, false, "Comfort"};
 void glue_get_state(struct state *data) {
   *data = s_state;  // Sync with your device
@@ -13,6 +23,7 @@ void glue_set_state(struct state *data) {
   s_state = *data; // Sync with your device
 }
 
+// Do not edit! See https://mongoose.ws/docs/guides/web-ui-builder/#custom-api-handlers
 static uint64_t s_action_timeout_steering_button_pressed;  // Time when steering_button_pressed ends
 bool glue_check_steering_button_pressed(void) {
   return s_action_timeout_steering_button_pressed > mg_now(); // Return true if steering_button_pressed is in progress
@@ -22,6 +33,7 @@ void glue_start_steering_button_pressed(struct mg_str params) {
   s_action_timeout_steering_button_pressed = mg_now() + 1000; // Start steering_button_pressed, finish after 1 second
 }
 
+// Do not edit! See https://mongoose.ws/docs/guides/web-ui-builder/#custom-api-handlers
 static struct login s_login = {"", ""};
 void glue_get_login(struct login *data) {
   *data = s_login;  // Sync with your device

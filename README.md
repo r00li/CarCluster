@@ -51,11 +51,17 @@ Currently fully tested and supported are the following instrument clusters:
 | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f55.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_e60.jpg?raw=true) | ![](Misc/cluster_images/cluster_e46.jpg) |
 | *Fully supported* | *Mostly supported - WIP - no fuel sim, only some indicators* | *Fully supported - needs specific connections, see wiring* |
 
-For people just starting I would recommend one of the BMW F series clusters or a VW MQB based cluster. If you want to try other clusters from same platform, they will probably work, but modifications might be needed based on the specific car model. If you are unsure if it will work, get the specific clusters mentioned here.
+| Mercedes C Class (W204)| Mercedes S Class (W221) |  |
+|--|--|--|
+| MERCEDES W204 | MERCEDES W221 |  |
+| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_204.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_w221.jpg?raw=true) | ![](Misc/cluster_images/cluster_empty.jpg) |
+| *Fully supported* | *Fully supported* |  |
+
+For people just starting I would recommend one of the Merces clusters, one of BMW F series clusters, or a VW MQB based cluster (in that order). If you want to try other clusters from same platform, they will probably work, but modifications might be needed based on the specific car model. If you are unsure if it will work, get the specific clusters mentioned here.
 
 **Newer MQB platform clusters like the T-Cross should be avoided**. After some (unknown) time they will enter into component protection mode which will flash the display and make most of the indicators useless. There is no known solution for this as of yet. I highly recommend you stick to older cars like Golf 7.
 
-You can get these clusters from ebay, your local scrapyard, or if you are in EU: [rrr.lt](rrr.lt/) . No matter where you get them, they should cost you around 50€.
+You can get these clusters from ebay, your local scrapyard, or if you are in EU: [rrr.lt](rrr.lt/) . No matter where you get them, they should cost you around 50€ (with shipping).
 
 ### Supported games
 If you want to use the instrument cluster for gaming then currently supported are the following games:
@@ -82,6 +88,8 @@ For easier wiring I have created a simple breakout PCB that you can use. Simply 
 - [Wiring for BMW F series cluster](Misc/README_WIRING_BMW_F.md)
 - [Wiring for BMW E60 cluster](Misc/README_WIRING_BMW_E60.md)
 - [Wiring for BMW E46 cluster](Misc/README_WIRING_BMW_E46.md)
+- [Wiring for Mercedes W204 cluster](Misc/README_WIRING_MB_W204.md)
+- [Wiring for Mercedes W221 cluster](Misc/README_WIRING_MB_W221.md)
 
 ### Install the arduino sketch to the ESP32
 Download the project and open it using Arduino IDE (I am using version 2.3.6).
@@ -95,6 +103,8 @@ Now open the `Carcluster.ino` file (arduino sketch) and look for the header `BEG
 Now that you have done that you can compile and install the sketch to your ESP32. Upon starting the ESP will create a wifi network access point called `CarCluster`. Connect to it using your phone/laptop using the password `carcluster`. After you have done that you can open a web browser (if a popup one doesn't open automatically upon connection) and navigate to `192.168.4.1`. This will bring up WifiManager where you can see the networks around you and connect to the one you want. After you do that your ESP will automatically connect to the network you select unless an error occurs in which case the access point will be created again. If you do not configure the wifi network in 3 minutes the ESP will boot in serial only mode that you can use with Simhub. 
 
 *Note that you might have some trouble uploading the code to the ESP32 while the CAN interface is connected. If you do, disconnect the CAN interface and try uploading again.*  
+
+*Additional note: some ESP boards have a serial interface that does not allow full speed communication. In that case you will receive strange errors when uploading (like board not responding and similar). In that case change the `SERIAL_BAUD_RATE` parameter to `460800`. You will also need to change this baud rate in Arduino serial monitor and simhub configuration (if using Simhub). Additionally you also need to lower the upload speed in Arduino IDE (Tools -> Upload speed). I recomment to `460800.*  
 
 You can also watch a simple step by step video:
 [![](https://github.com/r00li/CarCluster/blob/main/Misc/thumb_install_guide.png?raw=true )](https://youtu.be/A8SY1PaMTJA) 

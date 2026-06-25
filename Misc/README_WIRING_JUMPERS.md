@@ -7,9 +7,10 @@ Connect the CAN bus interface to ESP32 according to this:
 | CS | ESP Pin D5 |
 | SCK | ESP Pin D18 |
 | MISO | ESP Pin D19 |
-| MOSI | ESP Pin 23 |
+| MOSI | ESP Pin D23 |
 | GND | ESP GND |
 | VCC | ESP VIN | This is the 5V line when ESP is powered from USB |
+| CS2 | ESP Pin D27 | This is only for dual CAN clusters |
 
 ### Fuel level simulation for clusters with analog fuel level indicators
 Most instrument clusters use analog resistance values in order to calculate fuel level. The best way to simulate that is through the use of an X9C102 digital potentiometer. Connect it according to the schematic below. You will need two 1k ohm resistors in addition to the digital potentiometer itself. 

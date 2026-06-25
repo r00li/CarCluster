@@ -13,6 +13,8 @@
 #include "mongoose/mongoose_glue.h"
 #include "../Games/GameSimulation.h"
 
+#include "../Libs/MCP_CAN/mcp_can.h" // CAN Bus Shield Compatibility Library ( https://github.com/coryjfowler/MCP_CAN_lib )
+
 
 class WebDashboard {
   WebDashboard(const WebDashboard &other) = delete;
@@ -26,11 +28,14 @@ class WebDashboard {
     void getState(struct state *data);
     void setState(struct state *data);
     void steeringWheelAction(struct mg_str params);
+    void handleDebug(struct debug &data, MCP_CAN& CAN1, MCP_CAN* CAN2 = nullptr);
 
   private:
     GameState &gameState;
     unsigned long webDashboardUpdateInterval;
     unsigned long lastWebDashboardUpdateTime = 0;
+
+    unsigned long lastDebugUpdateInterval = 0;
 
     const char* mapGenericGearToLocalGear(GearState inputGear);
     GearState mapLocalGearToGenericGear(const char *gear);

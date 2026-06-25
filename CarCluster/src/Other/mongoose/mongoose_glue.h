@@ -19,6 +19,8 @@ extern "C" {
 #define WIZARD_ENABLE_WEBSOCKET 0
 
 #define WIZARD_ENABLE_MQTT 0
+#define WIZARD_ENABLE_OTA_OVER_MQTT 0
+#define WIZARD_MQTT_DEVICE_ID ""
 #define WIZARD_MQTT_URL ""
 
 #define WIZARD_ENABLE_SNTP 0  // Enable time sync.
@@ -33,8 +35,12 @@ extern "C" {
 #define WIZARD_MDNS_NAME ""
 
 #define WIZARD_ENABLE_WIFI 0
+#ifndef WIZARD_WIFI_NAME  // Allow to set WIZARD_WIFI_NAME from build params
 #define WIZARD_WIFI_NAME "MyNet"
+#endif
+#ifndef WIZARD_WIFI_PASS  // Allow to set WIZARD_WIFI_PASS from build params
 #define WIZARD_WIFI_PASS "MyPass"
+#endif
 #define WIZARD_ENABLE_WIFI_AP 0
 #define WIZARD_WIFI_AP_NAME "MyAp"
 #define WIZARD_WIFI_AP_PASS "MyApPass"
@@ -61,19 +67,26 @@ struct mongoose_mqtt_handlers {
   void (*on_cmd_fn)(struct mg_connection *, struct mg_mqtt_message *);
 };
 void mongoose_set_mqtt_handlers(struct mongoose_mqtt_handlers *);
-
-struct mongoose_modbus_handlers {
-  bool (*read_reg_fn)(uint16_t address, uint16_t *value);
-  bool (*write_reg_fn)(uint16_t address, uint16_t value);
-};
-void mongoose_set_modbus_handlers(struct mongoose_modbus_handlers *);
-
 void mongoose_set_sntp_handler(void (*fn)(uint64_t epoch_ms));
 void mongoose_set_sntp_server(const char *url);
 
 void mongoose_set_auth_handler(int (*fn)(const char *user, const char *pass));
 
-void mongoose_add_custom_handler(const char *url_pattern, mg_event_handler_t);
+void mongoose_add_custom_handler(const char *url_pattern, mg_event_handler_t,
+                                 int read_level, int write_level);
+
+#if MG_ENABLE_TCPIP && WIZARD_ENABLE_WIFI
+void mongoose_set_wifi_handler(mg_tcpip_event_handler_t eh);
+#endif
+
+struct mongoose_ota_settings {
+  const char *metadata_url;
+  int interval_seconds;
+  char *status_buffer;
+  size_t status_buffer_size;
+  void (*fn)(const char *);
+};
+void mongoose_enable_ota_url_checks(struct mongoose_ota_settings *settings);
 
 #if WIZARD_ENABLE_MQTT
 void glue_lock_init(void);  // Initialise global Mongoose mutex
@@ -85,6 +98,9 @@ void glue_unlock(void);     // Unlock global Mongoose mutex
 #define glue_unlock()
 #endif
 
+// Send a message to the websocket API connections, return number of connections
+int mongoose_ws_printf(const char *api_name, const char *fmt, ...);
+
 // Update MDNS name. Works when MDNS is enabled.
 void glue_mdns_update_name(const char *newname);
 
@@ -92,6 +108,24 @@ void glue_mdns_update_name(const char *newname);
 void glue_update_state(void);
 
 // Firmware Glue
+
+struct debug {
+  int bus;
+  int byte7;
+  int byte6;
+  int byte5;
+  int byte4;
+  int byte3;
+  int byte2;
+  int byte1;
+  int byte0;
+  bool enabled;
+  int address;
+  int delay;
+  int bytes;
+};
+void glue_get_debug(struct debug *);
+void glue_set_debug(struct debug *);
 
 struct state {
   int speed;

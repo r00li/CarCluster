@@ -16,6 +16,26 @@
   }, 
   "build": {"mode": "new", "board": "arduino-esp32", "ide": "Arduino", "rtos": "baremetal"}, 
   "api": {
+    "debug": {
+      "type": "data", 
+      "read_level": 0, 
+      "write_level": 0, 
+      "attributes": {
+        "bus": {"type": "int", "value": 1}, 
+        "byte7": {"type": "int", "value": 0}, 
+        "byte6": {"type": "int", "value": 0}, 
+        "byte5": {"type": "int", "value": 0}, 
+        "byte4": {"type": "int", "value": 0}, 
+        "byte3": {"type": "int", "value": 0}, 
+        "byte2": {"type": "int", "value": 0}, 
+        "byte1": {"type": "int", "value": 0}, 
+        "byte0": {"type": "int", "value": 0}, 
+        "enabled": {"type": "bool", "value": false}, 
+        "address": {"type": "int", "value": 0}, 
+        "delay": {"type": "int", "value": 0}, 
+        "bytes": {"type": "int", "value": 8}
+      }
+    }, 
     "state": {
       "type": "data", 
       "readonly": false, 
@@ -209,6 +229,15 @@
                         ]},
                       {"classes": "container", "css": "align-items: center;\njustify-content: center;\ngap: 0.5rem;\nflex-wrap: wrap;", "layout": [
                           {"type": "action", "title": "Steering button 3", "icon": "", "ref": "steering_button_pressed", "params": "3"}
+                        ]},
+                      {"classes": "container", "css": "align-items: center;\njustify-content: center;\ngap: 0.5rem;\nflex-wrap: wrap;", "layout": [
+                          {"type": "action", "title": "Steering button 4", "icon": "", "ref": "steering_button_pressed", "params": "4"}
+                        ]},
+                      {"classes": "container", "css": "align-items: center;\njustify-content: center;\ngap: 0.5rem;\nflex-wrap: wrap;", "layout": [
+                          {"type": "action", "title": "Steering button 5", "icon": "", "ref": "steering_button_pressed", "params": "5"}
+                        ]},
+                      {"classes": "container", "css": "align-items: center;\njustify-content: center;\ngap: 0.5rem;\nflex-wrap: wrap;", "layout": [
+                          {"type": "action", "title": "Steering button 6", "icon": "", "ref": "steering_button_pressed", "params": "6"}
                         ]}
                     ]},
                   {"classes": "panel", "css": "flex-grow: 1;\nflex-basis: 0 0 auto;", "layout": [
@@ -226,6 +255,84 @@
                   {"css": "white-space: nowrap;\ntext-overflow: ellipsis;\nfont-weight: 700;", "format": "Information"}
                 ]},
               {"format": "CarCluster by r00li.\n<br />\n<br />\nGithub: <a>https://github.com/r00li/CarCluster</a>\n<br />\n<br />\nWeb UI built using Mongoose: <a>https://mongoose.ws</a>\n"}
+            ]}
+        ]},
+      {"title": "Reverse engineering", "icon": "code", "css": "align-items: start;\nflex-grow: 1;\npadding: 0.75rem;\ngap: 0.5rem;\nmin-height: 2rem;\ndisplay: flex;\noverflow: auto;", "layout": [
+          {"classes": "container", "css": "gap: 0.5rem;\nflex-wrap: wrap;", "layout": [
+              {"classes": "panel", "css": "flex: 0 0 auto;\nflex-basis: 0 0 auto;\nwidth: 18rem;", "layout": [
+                  {"classes": "container", "css": "gap: 0.5rem;", "layout": [
+                      {"css": "white-space: nowrap;\ntext-overflow: ellipsis;\nfont-weight: 700;", "format": "Message sender"}
+                    ]},
+                  {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                      {"format": "Address"},
+                      {"classes": "container", "css": "gap:0.5rem; flex-wrap:wrap;", "layout": [
+                          {"type": "input", "ref": "debug.address", "css": "flex: 0 0 auto;\nwidth: 8rem;", "autosave": true},
+                          {"format": "0x${debug.address.toString(16)}"}
+                        ]}
+                    ]},
+                  {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                      {"format": "Delay (ms)"},
+                      {"type": "input", "ref": "debug.delay", "css": "flex: 0 0 auto;\nwidth: 8rem;", "autosave": true}
+                    ]},
+                  {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                      {"format": "Number of bytes"},
+                      {"type": "dropdown", "ref": "debug.bytes", "options": "1,2,3,4,5,6,7,8"}
+                    ]},
+                  {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                      {"format": "Bus"},
+                      {"type": "dropdown", "ref": "debug.bus", "options": "1,2", "autosave": true}
+                    ]},
+                  {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                      {"format": "Sending enabled"},
+                      {"type": "toggle", "ref": "debug.enabled", "autosave": true}
+                    ]},
+                  {"css": "margin-top: 0.25rem; justify-content:end;display:flex; align-items:center; gap: 1rem;", "layout": []}
+                ]}
+            ]},
+          {"classes": "panel", "css": "flex-grow: 1;\nflex-basis: 0 0 auto;", "layout": [
+              {"classes": "container", "css": "gap: 0.5rem;", "layout": [
+                  {"css": "white-space: nowrap;\ntext-overflow: ellipsis;\nfont-weight: 700;", "format": "Message"}
+                ]},
+              {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                  {"format": "Byte 0", "css": "height: 1.0625rem;"},
+                  {"type": "slider", "ref": "debug.byte0", "css": "flex-grow: 1;", "min": "0", "max": "255", "step": "1", "autosave": true},
+                  {"format": "0x${debug.byte0.toString(16)}"}
+                ]},
+              {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                  {"format": "Byte 1", "css": "flex: 0 0 auto;\nwidth: 2.6114587783813477rem;\nheight: 1.0625rem;"},
+                  {"type": "slider", "ref": "debug.byte1", "css": "flex-grow: 1;", "min": "0", "max": "255", "step": "1", "autosave": true},
+                  {"format": "0x${debug.byte1.toString(16)}"}
+                ]},
+              {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                  {"format": "Byte 2\n", "css": "flex: 0 0 auto;\nwidth: 2.6114587783813477rem;\nheight: 1.0625rem;"},
+                  {"type": "slider", "ref": "debug.byte2", "css": "flex-grow: 1;", "min": "0", "max": "255", "step": "1", "autosave": true},
+                  {"format": "0x${debug.byte2.toString(16)}"}
+                ]},
+              {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                  {"format": "Byte 3\n", "css": "height: 1.0625rem;"},
+                  {"type": "slider", "ref": "debug.byte3", "css": "flex-grow: 1;", "autosave": true, "min": "0", "max": "255"},
+                  {"format": "0x${debug.byte3.toString(16)}"}
+                ]},
+              {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                  {"format": "Byte 4", "css": "height: 1.0625rem;"},
+                  {"type": "slider", "ref": "debug.byte4", "css": "flex-grow: 1;", "min": "0", "max": "255", "step": "1", "autosave": true},
+                  {"format": "0x${debug.byte4.toString(16)}"}
+                ]},
+              {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                  {"format": "Byte 5", "css": "height: 1.0625rem;"},
+                  {"type": "slider", "ref": "debug.byte5", "css": "flex-grow: 1;", "min": "0", "max": "255", "step": "1", "autosave": true},
+                  {"format": "0x${debug.byte5.toString(16)}"}
+                ]},
+              {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                  {"format": "Byte 6", "css": "height: 1.0625rem;"},
+                  {"type": "slider", "ref": "debug.byte6", "css": "flex-grow: 1;", "min": "0", "max": "255", "step": "1", "autosave": true},
+                  {"format": "0x${debug.byte6.toString(16)}"}
+                ]},
+              {"css": "display: flex;\nalign-items: center;\njustify-content: space-between;\ngap: 1rem;", "layout": [
+                  {"format": "Byte 7", "css": "height: 1.0625rem;"},
+                  {"type": "slider", "ref": "debug.byte7", "css": "flex-grow: 1;", "min": "0", "max": "255", "step": "1", "autosave": true},
+                  {"format": "0x${debug.byte7.toString(16)}"}
+                ]}
             ]}
         ]}
     ], 
