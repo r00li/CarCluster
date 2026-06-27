@@ -30,6 +30,9 @@ void WebDashboard::getState(struct state *data) {
   data->coolant_temp = gameState.coolantTemperature;
   data->minimumCoolantTemp = gameState.configuration.minimumCoolantTemperature;
   data->maximumCoolantTemp = gameState.configuration.maximumCoolantTemperature;
+  data->oil_temp = gameState.oilTemperature;
+  data->minimumOilTemp = gameState.configuration.minimumOilTemperature;
+  data->maximumOilTemp = gameState.configuration.maximumOilTemperature;
   data->handbrake = gameState.handbrake;
   data->ignition = gameState.ignition;
   strcpy(data->drive_mode, mapGenericDriveModeToLocalDriveMode(gameState.driveMode));
@@ -53,6 +56,7 @@ void WebDashboard::setState(struct state *data) {
   gameState.gear = mapLocalGearToGenericGear(data->gear);
   gameState.backlightBrightness = data->backlight;
   gameState.coolantTemperature = data->coolant_temp;
+  gameState.oilTemperature = data->oil_temp;
   gameState.handbrake = data->handbrake;
   gameState.ignition = data->ignition;
   gameState.driveMode = mapLocalDriveModeToGenericDriveMode(data->drive_mode);
