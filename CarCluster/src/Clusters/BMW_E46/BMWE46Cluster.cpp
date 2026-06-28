@@ -78,11 +78,11 @@ void BMWE46Cluster::updateWithGame(GameState& game) {
     last20 = millis();
   }
 
-  if (millis() - last500 >= 500) { //every 500ms
+  if (millis() - last100 >= 100) { //every 500ms
     sendKBus(game.mainLights, game.highBeam, game.frontFogLight, game.rearFogLight, game.leftTurningIndicator, game.rightTurningIndicator, game.doorOpen);
     sendIO(game.handbrake,game.absLight);
     setFuel(game);
-    last500 = millis();
+    last100 = millis();
   }
 }
 
@@ -207,27 +207,11 @@ void BMWE46Cluster::sendIO(bool handbrake, bool absLight) {
 void BMWE46Cluster::sendKBus(bool mainLights, bool highBeam, bool frontFogLight, bool rearFogLight, bool leftTurningIndicator, bool rightTurningIndicator, bool doors) {
   byte kbusmsg[10] = {0xD0, 0x08, 0xBF, 0x5B, 0x00, 0x00, 0x00, 0x00, 0x00, 0xcc}; //last 0xcc is chksum
 
-  if (rightTurningIndicator) { //right
-    bitWrite(kbusmsg[4],6,1);
-    lastIndicatorR = millis();
-  } else {
-    if(lastIndicatorR+500 < millis()) {
-      bitWrite(kbusmsg[4],6,0);
-    }
-  }
-  
-  if (leftTurningIndicator) { //left
-    bitWrite(kbusmsg[4],5,1); //leftBlink
-    lastIndicatorL = millis();
-  } else {
-    if(lastIndicatorL+500 < millis()) {
-      bitWrite(kbusmsg[4],5,0); //leftBlink
-    }
-  }
-  
-  bitWrite(kbusmsg[4],4,rearFogLight); //rearFog
-  bitWrite(kbusmsg[4],3,frontFogLight); //frontFog
-  bitWrite(kbusmsg[4],2,highBeam); //highbeam
+  bitWrite(kbusmsg[4],6,rightTurningIndicator);
+  bitWrite(kbusmsg[4],5,leftTurningIndicator);
+  bitWrite(kbusmsg[4],4,rearFogLight);
+  bitWrite(kbusmsg[4],3,frontFogLight);
+  bitWrite(kbusmsg[4],2,highBeam);
   
   //shows only the car image, I have no idea on how to show the doors:
   //https://github.com/piersholt/wilhelm-docs/blob/master/gm/7a.md
@@ -257,32 +241,3 @@ void BMWE46Cluster::setFuel(GameState& game) {
   int desiredPositionPot2 = map(pot2Percentage, 0, 50, game.configuration.minimumFuelPot2Value, game.configuration.maximumFuelPot2Value);
   fuelPot2.setPosition(desiredPositionPot2, false);
 }
-
-//____WORKING/DONE____
-//rpm = done-works
-//speed = done-works
-//GearState gear/driveMode = done-works
-//coolantTemperature = done-works with lamp
-//absLight = done-works
-//asc/offroad = done-works (even 2004+)
-//rearFogLight,frontFogLight,highBeam,rightTurningIndicator,leftTurningIndicator = done-works
-//fake l/100km gauge = done
-//fuelQuantity = done, use values in the .h file
-//handbrake = done-works
-//backlight = works, 2004- with pin 7, 2004+ force set with kbus
-
-//____NOT WORTH IT?_____
-//batteryLight,turningIndicatorsBlinking,outdoorTemperature,ignition,backlightBrightness,mainLights
-
-//1st is connector of IKE, second is ESP/potentiometer pin
-//1&2 outside temperature
-//9 CAN+ ; 10 CAN-
-//11 black:TANK1+ (black/red/white) = A2 ; 12 = TANK1- (Brown/black/white) = A1
-//15 black:TANK2+ (black/red/yellow) = B1 ; 16 = TANK2- (Brown/black/yellow) = B2
-//14 black (white/red/yellow) = 17 KBUS (shift)
-//19 black (yellow/green) = 22 speed (shift)
-//22 black (black/yellow) = 21 abs (shift)
-//23 black (blue/brown/yellow) = 13 handbrake (shift)
-//7 black (grey/red) = 12v backlight
-//4,5,6 black = 12V
-//24,26,20 black & 4 white = gnd
