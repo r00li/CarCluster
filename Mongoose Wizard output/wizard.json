@@ -47,10 +47,13 @@
         "gear": {"type": "string", "value": "P", "size": 3}, 
         "fuel": {"type": "int", "value": 0}, 
         "backlight": {"type": "int", "value": 0, "size": 0}, 
-        "coolant_temp": {"type": "int", "value": 0}, 
-        "maximumCoolantTemp": {"type": "int", "value": 150}, 
-        "minimumCoolantTemp": {"type": "int", "value": 10}, 
-        "outdoor_temp": {"type": "int", "value": 0}, 
+        "coolant_temp": {"type": "int", "value": 0},
+        "maximumCoolantTemp": {"type": "int", "value": 150},
+        "minimumCoolantTemp": {"type": "int", "value": 10},
+        "oil_temp": {"type": "int", "value": 0},
+        "maximumOilTemp": {"type": "int", "value": 150},
+        "minimumOilTemp": {"type": "int", "value": 10},
+        "outdoor_temp": {"type": "int", "value": 0},
         "high_beam": {"type": "bool", "value": false}, 
         "main_lights": {"type": "bool", "value": false}, 
         "left_indicator": {"type": "bool", "value": false}, 
@@ -139,6 +142,12 @@
                           {"css": "height: 1.09375rem;\nwhite-space: nowrap;\ntext-overflow: ellipsis;\nfont-weight: 700;", "format": "Coolant temperature"}
                         ]},
                       {"type": "slider", "ref": "state.coolant_temp", "autosave": true, "max": "${state.maximumCoolantTemp}", "step": "10", "min": "${state.minimumCoolantTemp}"}
+                    ]},
+                  {"classes": "panel", "css": "flex-grow: 1;\nflex-basis: 0 0 auto;", "layout": [
+                      {"classes": "container", "css": "gap: 0.5rem;", "layout": [
+                          {"css": "height: 1.09375rem;\nwhite-space: nowrap;\ntext-overflow: ellipsis;\nfont-weight: 700;", "format": "Oil temperature"}
+                        ]},
+                      {"type": "slider", "ref": "state.oil_temp", "autosave": true, "max": "${state.maximumOilTemp}", "step": "1", "min": "${state.minimumOilTemp}"}
                     ]},
                   {"classes": "panel", "css": "flex-grow: 1;\nflex-basis: 0 0 auto;", "layout": [
                       {"classes": "container", "css": "gap: 0.5rem;", "layout": [

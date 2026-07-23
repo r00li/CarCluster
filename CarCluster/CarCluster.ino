@@ -55,6 +55,12 @@
 #define MINIMUM_COOLANT_TEMPERATURE 0
 #define MAXIMUM_COOLANT_TEMPERATURE 0
 
+// Define the minimum and maximum oil temperature your cluster can display
+// Leave alone if your cluster has no such display
+// Leave at 0 for using the defaults based on the cluster. Change this is your cluster has different limits.
+#define MINIMUM_OIL_TEMPERATURE 0
+#define MAXIMUM_OIL_TEMPERATURE 0
+
 // Select if you want Wifi to be enabled or not.
 // Wifi gives you a web dashboard that you can use for testing
 // and the ability to connect to certain games directly, but will only work on an ESP32. 
@@ -222,7 +228,7 @@ char canRxMsgString[128];  // Array to store serial string
 #endif
 
 // Game simulation variables
-ClusterConfiguration clusterConfig = ClusterConfiguration::updatedFromDefaults(defaultClusterConfig, SPEED_CORRECTION_FACTOR, RPM_CORRECTION_FACTOR, MAXIMUM_RPM, MAXIMUM_SPEED, MINIMUM_COOLANT_TEMPERATURE, MAXIMUM_COOLANT_TEMPERATURE, ANALOG_FUEL_POT_MINIMUM_VALUE, ANALOG_FUEL_POT_MAXIMUM_VALUE, ANALOG_FUEL_POT_MINIMUM_VALUE2, ANALOG_FUEL_POT_MAXIMUM_VALUE2);
+ClusterConfiguration clusterConfig = ClusterConfiguration::updatedFromDefaults(defaultClusterConfig, SPEED_CORRECTION_FACTOR, RPM_CORRECTION_FACTOR, MAXIMUM_RPM, MAXIMUM_SPEED, MINIMUM_COOLANT_TEMPERATURE, MAXIMUM_COOLANT_TEMPERATURE, MINIMUM_OIL_TEMPERATURE, MAXIMUM_OIL_TEMPERATURE, ANALOG_FUEL_POT_MINIMUM_VALUE, ANALOG_FUEL_POT_MAXIMUM_VALUE, ANALOG_FUEL_POT_MINIMUM_VALUE2, ANALOG_FUEL_POT_MAXIMUM_VALUE2);
 GameState game(clusterConfig);
 SimhubGame simhubGame(game);
 

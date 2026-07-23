@@ -16,13 +16,15 @@ struct ClusterConfiguration {
   int maximumSpeedValue = 260;          // Set what is the maximum speed on your cluster (in km/h)
   int minimumCoolantTemperature = 0;    // Set what is the minimum coolant temperature on your cluster (in C)
   int maximumCoolantTemperature = 200;  // Set what is the maximum coolant temperature on your cluster (in C)
+  int minimumOilTemperature = 0;        // Set what is the minimum oil temperature on your cluster (in C)
+  int maximumOilTemperature = 200;      // Set what is the maximum oil temperature on your cluster (in C)
   int minimumFuelPotValue = 18;         // Calibration of fuel pot - minimum value
   int maximumFuelPotValue = 83;         // Calibration of fuel pot - maximum value
   int minimumFuelPot2Value = 17;        // Calibration of fuel pot 2 - minimum value
   int maximumFuelPot2Value = 75;        // Calibration of fuel pot 2 - maximum value
   int isDualFuelPot = false;
 
-  static ClusterConfiguration updatedFromDefaults(ClusterConfiguration current, float speedCorrectionFactor, float rpmCorrectionFactor, int maximumRPMValue, int maximumSpeedValue, int minimumCoolantTemperature, int maximumCoolantTemperature, int minimumFuelPotValue, int maximumFuelPotValue, int minimumFuelPot2Value, int maximumFuelPot2Value) {
+  static ClusterConfiguration updatedFromDefaults(ClusterConfiguration current, float speedCorrectionFactor, float rpmCorrectionFactor, int maximumRPMValue, int maximumSpeedValue, int minimumCoolantTemperature, int maximumCoolantTemperature, int minimumOilTemperature, int maximumOilTemperature, int minimumFuelPotValue, int maximumFuelPotValue, int minimumFuelPot2Value, int maximumFuelPot2Value) {
     ClusterConfiguration newConfiguration;
 
     newConfiguration.speedCorrectionFactor = speedCorrectionFactor;
@@ -50,6 +52,18 @@ struct ClusterConfiguration {
       newConfiguration.maximumCoolantTemperature = maximumCoolantTemperature;
     } else {
       newConfiguration.maximumCoolantTemperature = current.maximumCoolantTemperature;
+    }
+
+    if (minimumOilTemperature > 0) {
+      newConfiguration.minimumOilTemperature = minimumOilTemperature;
+    } else {
+      newConfiguration.minimumOilTemperature = current.minimumOilTemperature;
+    }
+
+    if (maximumOilTemperature > 0) {
+      newConfiguration.maximumOilTemperature = maximumOilTemperature;
+    } else {
+      newConfiguration.maximumOilTemperature = current.maximumOilTemperature;
     }
 
     if (minimumFuelPotValue > -1) {
@@ -111,6 +125,7 @@ class GameState {
   enum GearState gear = GearState_Auto_P;            // The gear that the car is in
   uint8_t backlightBrightness = 100;                 // Backlight brightness 0-99
   int coolantTemperature = 100;                      // Coolant temperature 50-130C
+  int oilTemperature = 80;                           // Oil temperature 50-192C
   bool ignition = true;                              // Ignition status (set to false for accessory)
   int fuelQuantity = 100;                            // Amount of fuel
   int outdoorTemperature = 20;                       // Outdoor temperature (from -50 to 50)
