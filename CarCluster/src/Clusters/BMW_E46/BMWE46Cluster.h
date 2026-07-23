@@ -41,8 +41,7 @@ class BMWE46Cluster: public Cluster {
     int handbrakePin,speedPin,absPin;
     bool fakeConsumption;
 
-    unsigned long last10 = 0, last20 = 0, last500 = 0; // Timer for the message loops
-    unsigned long lastIndicatorL = 0,lastIndicatorR = 0; // Timer for the blinkers
+    unsigned long last10 = 0, last20 = 0, last100 = 0; // Timer for the message loops
 
     int mpgloop = 0, lastSpeed = 0, EGScounter = 0; //Looping counters and checks
 
