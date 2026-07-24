@@ -51,7 +51,7 @@ int BMWFSeriesCluster::mapSpeed(GameState& game) {
 }
 
 int BMWFSeriesCluster::mapRPM(GameState& game) {
-  int scaledRPM = game.rpm * game.configuration.speedCorrectionFactor;
+  int scaledRPM = game.rpm * game.configuration.rpmCorrectionFactor;
   if (scaledRPM > game.configuration.maximumRPMValue) {
     return game.configuration.maximumRPMValue;
   } else {
@@ -118,20 +118,52 @@ void BMWFSeriesCluster::sendSpeed(int speed) {
   unsigned char speedWithCRC[] = { crc8Calculator.get_crc8(speedWithoutCRC, 4, 0xA9), speedWithoutCRC[0], speedWithoutCRC[1], speedWithoutCRC[2], speedWithoutCRC[3] };
   CAN.sendMsgBuf(0x1A1, 0, 5, speedWithCRC);
 }
-
+// 原版的代码进准度很低 只有48个格子把好像 改成双针刷新
 void BMWFSeriesCluster::sendRPM(int rpm, int manualGear) {
-  // The gear that the car is in: 0 = clear, 1-9 = M1-M9, 10 = P, 11 = R, 12 = N, 13 = D
+
+  if (rpm < 0) rpm = 0;
+  if (rpm > 7500) rpm = 7500;
+
   int calculatedGear = 0;
   switch (manualGear) {
-    case 0: calculatedGear = 0; break; // Empty
-    case 1 ... 9: calculatedGear = manualGear + 4; break; // 1-9
-    case 11: calculatedGear = 2; break; // Reverse
-    case 12: calculatedGear = 1; break; // Neutral
+    case 0: calculatedGear = 0; break;
+    case 1 ... 9: calculatedGear = manualGear + 4; break;
+    case 11: calculatedGear = 2; break;
+    case 12: calculatedGear = 1; break;
+    default: calculatedGear = 0; break;
   }
-  int rpmValue =  map(rpm, 0, 6900, 0x00, 0x2B);
-  unsigned char rpmWithoutCRC[] = { 0x60|counter4Bit, rpmValue, 0xC0, 0xF0, calculatedGear, 0xFF, 0xFF };
-  unsigned char rpmWithCRC[] = { crc8Calculator.get_crc8(rpmWithoutCRC, 7, 0x7A), rpmWithoutCRC[0], rpmWithoutCRC[1], rpmWithoutCRC[2], rpmWithoutCRC[3], rpmWithoutCRC[4], rpmWithoutCRC[5], rpmWithoutCRC[6] };
-  CAN.sendMsgBuf(0x0F3, 0, 8, rpmWithCRC);
+
+  float rpmScaledFloat = rpm * 1.557f;
+
+  uint16_t rpmScaledPlus  = (uint16_t)((rpm + 4) * 1.557f);
+  uint16_t rpmScaledMinus = (uint16_t)((rpm) * 1.557f);
+
+  uint8_t rpmFrame[8] = {
+    0x00,
+    0x00,
+    0x00,
+    0xC0,
+    0xF0,
+    (uint8_t)calculatedGear,
+    0xFF,
+    0xFF
+  };
+
+  rpmFrame[1] = lo8(rpmScaledPlus);
+  rpmFrame[2] = hi8(rpmScaledPlus);
+
+  uint8_t crc1 = crc8Calculator.get_crc8(&rpmFrame[1], 7, 0x7A);
+  rpmFrame[0] = crc1;
+
+  CAN.sendMsgBuf(0x0F3, 0, 8, rpmFrame);
+
+  rpmFrame[1] = lo8(rpmScaledMinus);
+  rpmFrame[2] = hi8(rpmScaledMinus);
+
+  uint8_t crc2 = crc8Calculator.get_crc8(&rpmFrame[1], 7, 0x7A);
+  rpmFrame[0] = crc2;
+
+  CAN.sendMsgBuf(0x0F3, 0, 8, rpmFrame);
 }
 
 void BMWFSeriesCluster::sendAutomaticTransmission(int gear) {
@@ -164,11 +196,49 @@ void BMWFSeriesCluster::sendBasicDriveInfo(int engineTemperature) {
   unsigned char steeringColumnWithCRC[] = { crc8Calculator.get_crc8(steeringColumnWithoutCRC, 4, 0x9E), steeringColumnWithoutCRC[0], steeringColumnWithoutCRC[1], steeringColumnWithoutCRC[2], steeringColumnWithoutCRC[3] };
   CAN.sendMsgBuf(0x2A7, 0, 5, steeringColumnWithCRC);
 
-  //Cruise control
-  unsigned char cruiseWithoutCRC[] = { 0xF0|counter4Bit, 0xE0, 0xE0, 0xE1, 0x00, 0xEC, 0x01 };
-  unsigned char cruiseWithCRC[] = { crc8Calculator.get_crc8(cruiseWithoutCRC, 7, 0x82), cruiseWithoutCRC[0], cruiseWithoutCRC[1], cruiseWithoutCRC[2], cruiseWithoutCRC[3], cruiseWithoutCRC[4], cruiseWithoutCRC[5], cruiseWithoutCRC[6] };
+  // ===============================
+  // Cruise Control ECU status frame
+  // 巡航控制ECU状态帧
+  //
+  // This frame tells the cluster that the cruise ECU exists
+  // and optionally indicates that cruise is active.
+  //
+  // 该帧用于告诉仪表盘：
+  // 1. 车辆存在巡航ECU
+  // 2. 巡航是否启用
+  //
+  // Byte4:
+  // 0x00 = Cruise OFF / 巡航关闭
+  // 0xE3 = Cruise ACTIVE / 巡航启用
+  //
+  // Default behaviour: cruise disabled
+  // 默认行为：巡航关闭
+  // ===============================
+  
+  uint8_t cruiseStateByte = 0x00;
+  
+  unsigned char cruiseWithoutCRC[] = {
+    0xF0 | counter4Bit,   // Alive counter / 循环计数器
+    0xE0,                 // Status byte / 状态字节
+    0xE0,                 // Status byte / 状态字节
+    0xE1,                 // Status byte / 状态字节
+    cruiseStateByte,      // Cruise state / 巡航状态
+    0xEC,                 // Constant / 固定值
+    0x01                  // Constant / 固定值
+  };
+  
+  unsigned char cruiseWithCRC[] = {
+    crc8Calculator.get_crc8(cruiseWithoutCRC, 7, 0x82),
+    cruiseWithoutCRC[0],
+    cruiseWithoutCRC[1],
+    cruiseWithoutCRC[2],
+    cruiseWithoutCRC[3],
+    cruiseWithoutCRC[4],
+    cruiseWithoutCRC[5],
+    cruiseWithoutCRC[6]
+  };
+  
   CAN.sendMsgBuf(0x289, 0, 8, cruiseWithCRC);
-
   //Restraint system (airbag?)
   unsigned char restraintWithoutCRC[] = { 0x40|counter4Bit, 0x40, 0x55, 0xFD, 0xFF, 0xFF, 0xFF };
   unsigned char restraintWithCRC[] = { crc8Calculator.get_crc8(restraintWithoutCRC, 7, 0xFF), restraintWithoutCRC[0], restraintWithoutCRC[1], restraintWithoutCRC[2], restraintWithoutCRC[3], restraintWithoutCRC[4], restraintWithoutCRC[5], restraintWithoutCRC[6] };
@@ -233,10 +303,37 @@ void BMWFSeriesCluster::sendBlinkers(bool leftTurningIndicator, bool rightTurnin
 }
 
 void BMWFSeriesCluster::sendLights(bool mainLights, bool highBeam, bool rearFogLight, bool frontFogLight) {
-  //Lights
-  //32 = front fog light, 64 = rear fog light, 2 = high beam, 4 = main lights
-  uint8_t lightStatus = highBeam << 1 | mainLights << 2 | frontFogLight << 5 | rearFogLight << 6;
-  unsigned char lightsWithoutCRC[] = { lightStatus, 0xC0, 0xF7 };
+
+  // ===============================
+  // Light logic
+  // 灯光逻辑
+  //
+  // If high beam is active, low beam must also be ON.
+  // 如果远光开启，近光必须同时开启
+  //
+  // AUTO high beam indicator will appear when:
+  // 自动远光图标触发条件：
+  // mainLights = true AND highBeam = true
+  // ===============================
+
+bool lowBeam = mainLights;
+
+if (highBeam) {
+  lowBeam = true;
+}
+
+uint8_t lightStatus =
+    (highBeam << 1) |
+    (lowBeam << 2) |
+    (frontFogLight << 5) |
+    (rearFogLight << 6);
+
+  unsigned char lightsWithoutCRC[] = {
+    lightStatus,
+    0xC0,
+    0xF7
+  };
+
   CAN.sendMsgBuf(0x21A, 0, 3, lightsWithoutCRC);
 }
 
