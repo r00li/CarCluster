@@ -51,11 +51,11 @@ Currently fully tested and supported are the following instrument clusters:
 | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_f55.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_e60.jpg?raw=true) | ![](Misc/cluster_images/cluster_e46.jpg) |
 | *Fully supported* | *Mostly supported - WIP - no fuel sim, only some indicators* | *Fully supported - needs specific connections, see wiring* |
 
-| Mercedes C Class (W204) | Mercedes S Class (W221) |  |
+| Mercedes C Class (W204) | Mercedes S Class (W221) | Opel Corsa E |
 |--|--|--|
-| MERCEDES W204 | MERCEDES W221 |  |
-| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_w204.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_w221.jpg?raw=true) | ![](Misc/cluster_images/cluster_empty.jpg) |
-| *Fully supported* | *Fully supported* |  |
+| MERCEDES W204 | MERCEDES W221 | GM Global A |
+| ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_w204.jpg?raw=true) | ![](https://github.com/r00li/CarCluster/blob/main/Misc/cluster_images/cluster_w221.jpg?raw=true) | ![](Misc/cluster_images/cluster_corsa.jpg) |
+| *Fully supported* | *Fully supported* | *Fully supported* |
 
 For people just starting I would recommend one of the Merces clusters, one of BMW F series clusters, or a VW MQB based cluster (in that order). If you want to try other clusters from same platform, they will probably work, but modifications might be needed based on the specific car model. If you are unsure if it will work, get the specific clusters mentioned here.
 
@@ -90,6 +90,7 @@ For easier wiring I have created a simple breakout PCB that you can use. Simply 
 - [Wiring for BMW E46 cluster](Misc/README_WIRING_BMW_E46.md)
 - [Wiring for Mercedes W204 cluster](Misc/README_WIRING_MB_W204.md)
 - [Wiring for Mercedes W221 cluster](Misc/README_WIRING_MB_W221.md)
+- [Wiring for Opel Corsa E cluster](Misc/README_WIRING_OPEL_CORSA_E.md)
 
 ### Install the arduino sketch to the ESP32
 Download the project and open it using Arduino IDE (I am using version 2.3.6).

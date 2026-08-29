@@ -28,6 +28,7 @@
 // 7 = BMW E46
 // 8 = Mercedes Benz C Class (W204) [dual CAN]
 // 9 = Mercedes Benz S Class (W221)
+// 10 = Opel Corsa E (GM Global A)
 // 99 = Golf 7 (VW MQB) - Passthrough mode (if using an external gateway, BCM, ignition lock, ...) [dual CAN]
 #define CLUSTER 1
 
@@ -103,6 +104,15 @@
 #define BMWE46_SPEED_PIN 22
 #define BMWE46_ABS_PIN 21
 #define BMWE46_FAKE_CONSUMPTION true // Show faked consumption based on RPM (we do not have injector timing data)
+
+// Opel Corsa E specific configuration
+#define OPEL_CORSA_E_ODOMETER_ENABLE true // Enable or disable the odometer counting on the cluster
+#define OPEL_CORSA_E_ODOMETER 0 // Starting value of the odometer in kilometers. The distance that you've driven will be saved & loaded on the ESP32, until this value is changed again.
+#define OPEL_CORSA_E_DIAG_TEST 0 // Diagnostics test for the cluster, for normal operation the value is set at 0
+// 0 = Diag. test off
+// 1 = Gauge & needle sweep
+// 2 = Christmas tree
+// 3 = White display
 
 // Dual CAN clusters PIN configuration (MB W204, MQB passthrough, ...)
 #define CAN2_CS 25
@@ -208,6 +218,11 @@ char canRxMsgString[128];  // Array to store serial string
   #include "src/Clusters/MERCEDES_W221/MercedesW221Cluster.h"
   MercedesW221Cluster cluster(CAN);
   ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
+#elif CLUSTER == 10
+  // Opel Corsa E
+  #include "src/Clusters/Opel_CorsaE/OpelCorsaECluster.h"
+  OpelCorsaECluster cluster(CAN, OPEL_CORSA_E_ODOMETER, OPEL_CORSA_E_ODOMETER_ENABLE, OPEL_CORSA_E_DIAG_TEST);
+  ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
 #elif CLUSTER == 99
   // Golf 7 Passthrough mode
   MCP_CAN CAN2(CAN2_CS);  // Set CS pin
@@ -296,6 +311,8 @@ void setup() {
   #elif CLUSTER == 8
     INT8U canSpeed = CAN_500KBPS;
     INT8U can2Speed = CAN_125KBPS;
+  #elif CLUSTER == 10
+    INT8U canSpeed = CAN_33K3BPS;
   #else
     INT8U canSpeed = CAN_500KBPS;
     INT8U can2Speed = CAN_500KBPS;
