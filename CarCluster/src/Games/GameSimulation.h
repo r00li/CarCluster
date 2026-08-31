@@ -129,6 +129,18 @@ class GameState {
   uint8_t driveMode = 3;                             // Current drive mode for BMW: 1= Traction, 2= Comfort+, 4= Sport, 5= Sport+, 6= DSC off, 7= Eco pro 
   bool absLight = false;                             // Shows ABS Signal on dashboard
   bool batteryLight = false;                         // Show Battery Warning.
+  // ===============================
+  // Cruise control state
+  // 巡航控制状态
+  //
+  // false = Cruise OFF  (默认关闭)
+  // true  = Cruise ON   (巡航启用)
+  //
+  // Used by CAN frame 0x289
+  // 用于控制仪表巡航图标
+  // ===============================
+  bool cruiseControlActive = false;
+
 
   // Other stuff
   int buttonEventToProcess = 0;                      // Certain clusters have buttons that can perform actions. Set this to activate them - values are cluster dependent
