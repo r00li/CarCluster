@@ -120,6 +120,8 @@ void VWMQBCluster::updateWithGame(GameState& game) {
     sendOtherLights();
     sendDoorStatus(game.doorOpen);
     sendOutdoorTemperature(game.outdoorTemperature);
+    sendTime(game.clock.hour, game.clock.minute);
+    sendDate(game.clock.year, game.clock.month, game.clock.day);
 
     if (game.buttonEventToProcess != 0) {
       sendSteeringWheelControls(game.buttonEventToProcess + 3);
@@ -519,6 +521,21 @@ void VWMQBCluster::sendOutdoorTemperature(int temperature) {
   outdoorTempBuff[0] = (50 + temperature) << 1; // Bit shift 1 to the left since 0.5 is the first bit
 
   CAN.sendMsgBuf(OUTDOOR_TEMP_ID, 0, 8, outdoorTempBuff);
+}
+
+// Time/date are BAP messages on the EXTENDED 29-bit id 0x17331100 (normally radio->cluster).
+// Values are plain binary (e.g. hour 20 = 0x14), not BCD. 2nd sendMsgBuf arg = 1 selects extended id.
+void VWMQBCluster::sendTime(uint8_t hour, uint8_t minute) {
+  timeBuff[2] = hour;
+  timeBuff[3] = minute;
+  CAN.sendMsgBuf(DATE_ID, 1, 5, timeBuff);
+}
+
+void VWMQBCluster::sendDate(uint8_t year, uint8_t month, uint8_t day) {
+  dateBuff[2] = year;  // 2-digit year, e.g. 25 for 2025
+  dateBuff[3] = month;
+  dateBuff[4] = day;
+  CAN.sendMsgBuf(DATE_ID, 1, 5, dateBuff);
 }
 
 void VWMQBCluster::updateTestBuffer(uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3, uint8_t val4, uint8_t val5, uint8_t val6, uint8_t val7) {

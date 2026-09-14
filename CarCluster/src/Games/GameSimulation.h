@@ -8,6 +8,7 @@
 #define GAME_SIMULATION
 
 #include "Arduino.h"
+#include "Clock.h"
 
 struct ClusterConfiguration {
   float speedCorrectionFactor = 1.00;   // Calibration of speed gauge
@@ -129,6 +130,10 @@ class GameState {
   uint8_t driveMode = 3;                             // Current drive mode for BMW: 1= Traction, 2= Comfort+, 4= Sport, 5= Sport+, 6= DSC off, 7= Eco pro 
   bool absLight = false;                             // Shows ABS Signal on dashboard
   bool batteryLight = false;                         // Show Battery Warning.
+
+  // Free-running cluster clock. Ticks on its own (call clock.tick() each loop);
+  // correct it by writing clock.hour/minute/... e.g. from a serial time set.
+  Clock clock;
 
   // Other stuff
   int buttonEventToProcess = 0;                      // Certain clusters have buttons that can perform actions. Set this to activate them - values are cluster dependent
