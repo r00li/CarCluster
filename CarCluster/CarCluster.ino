@@ -113,6 +113,14 @@
 // 1 = Gauge & needle sweep
 // 2 = Christmas tree
 // 3 = White display
+#define OPEL_CORSA_E_LANGUAGE 0 // Sets the language that the cluster's display will use
+// 0 = English
+// 1 = German
+// 2 = Italian
+// 3 = Swedish
+// 4 = French
+// 5 = Spanish
+// 6 = Dutch
 
 // Dual CAN clusters PIN configuration (MB W204, MQB passthrough, ...)
 #define CAN2_CS 25
@@ -221,7 +229,7 @@ char canRxMsgString[128];  // Array to store serial string
 #elif CLUSTER == 10
   // Opel Corsa E
   #include "src/Clusters/Opel_CorsaE/OpelCorsaECluster.h"
-  OpelCorsaECluster cluster(CAN, OPEL_CORSA_E_ODOMETER, OPEL_CORSA_E_ODOMETER_ENABLE, OPEL_CORSA_E_DIAG_TEST);
+  OpelCorsaECluster cluster(CAN, OPEL_CORSA_E_ODOMETER, OPEL_CORSA_E_ODOMETER_ENABLE, OPEL_CORSA_E_DIAG_TEST, OPEL_CORSA_E_LANGUAGE);
   ClusterConfiguration defaultClusterConfig = cluster.clusterConfig();
 #elif CLUSTER == 99
   // Golf 7 Passthrough mode
