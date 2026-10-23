@@ -48,7 +48,7 @@
 #define LICHT_ANF_ID 0x3D5 // Lights... somewhere
 #define DOOR_STATUS_ID 0x583 // Door status
 #define OUTDOOR_TEMP_ID 0x5e1 // Outdoor temperature
-#define DATE_ID 0x17331110
+#define DATE_ID 0x17331100 // BAP time/date, sent as a 29-bit EXTENDED id (radio->cluster)
 // WARNING: NEVER TOUCH ADDRESS 0x6B4 !!!!! This is part of component protection/VIN
 
 class VWMQBCluster: public Cluster {
@@ -126,7 +126,9 @@ class VWMQBCluster: public Cluster {
                   outdoorTempBuff[8] = { 0x9A, 0x2A, 0x00, 0x60, 0xFE, 0x00, 0x00, 0x00 },
                   lichtAnfBuff[8] = { 0x00, 0x04, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00 },
                   lichtHintenBuff[8] = { 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-                  testBuff[8] = { 0x04, 0x06, 0x40, 0x00, 0xFF, 0xFE, 0x69, 0x2C };
+                  testBuff[8] = { 0x04, 0x06, 0x40, 0x00, 0xFF, 0xFE, 0x69, 0x2C },
+                  timeBuff[5] = { 0x24, 0x51, 0x00, 0x00, 0x00 },  // [2]=hour [3]=minute [4]=second
+                  dateBuff[5] = { 0x24, 0x50, 0x00, 0x00, 0x00 };  // [2]=year(2-digit) [3]=month [4]=day
 
     void sendIgnitionStatus(boolean ignition);
     void sendBacklightBrightness(uint8_t brightness);
@@ -146,7 +148,9 @@ class VWMQBCluster: public Cluster {
     void sendDoorStatus(boolean doorOpen);
     void sendOutdoorTemperature(int temperature);
     void sendOtherLights();
-    
+    void sendTime(uint8_t hour, uint8_t minute);
+    void sendDate(uint8_t year, uint8_t month, uint8_t day);
+
     void setFuel(GameState& game);
     uint8_t mapGenericGearToLocalGear(GearState inputGear);
     int mapSpeed(GameState& game);
